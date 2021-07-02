@@ -8,9 +8,11 @@ param(
     [int]$srcProject,
     # ProjectVNext, OrgBoard, RepoBoard
     [string]$srcType,
+    # The source repository name. Used only if -srcType is RepoBoard.
     [string]$srcRepoName=$null,
     # The id number of the destination project to copy to
     [int]$destProject,
+    # The destination repository name. If set the destination is assumed to be a RepoBoard, otherwise OrgBoard will be used.
     [string]$destRepoName=$null,
     # The GitHub organization name the projects are in (note: we cannot copy between organizations)
     [string]$org,
@@ -18,10 +20,15 @@ param(
     [string]$token,
     # Specifies the handling for statuses for items already in the destination. By default statues are not changed. If set, they will be.
     [switch]$overrideExistingStatus,
+    # The default Status to use for items which have none (which can only happen when the source is a ProjectVNext). Note this is the source Status, not the destination.
     [string]$defaultStatus=$null,
+    # Specifies the handling of items which have no Status value (which can only happen when the source is a ProjectVNext). By default, -defaultStatus is applied. If set, they are skipped.
     [switch]$ignoreProjectItemsWithoutStatus,
+    # Specifies the handling of items with "Done" Status. By default they are processed normally. If set, they are skipped.
     [switch]$ignoreDoneItems,
+    # Mapping of source to destination Status values in case some names do not match. Only source Statuses which do not have a destination Status of the same name need to be given.
     [HashTable]$srcToDestStatusMap=@{},
+    # Specifies the handling of note cards. By default they are processed normally. If set, they are skipped.
     [switch]$skipNotes
 )
 
@@ -160,12 +167,12 @@ function Copy-Board {
 Import-Module "./common/client.psm1" -Verbose:$false
 $client = New-GraphQLClient $token
 
-if ((-not $srcType) -or ($srcType -eq "ProjectVNext")) {
+if ($srcType -eq "ProjectVNext") {
     $project = Get-Project -org $org -projectNumber $srcProject -client $client
     $src = Convert-ProjectToBoard $project
-} elseif ($srcType -eq "OrgBoard") {
+} elseif (($srcType -eq "" -and $srcRepoName -eq "") -or ($srcType -eq "OrgBoard")) {
     $src = Get-OrganizationBoard -org $org -boardNumber $srcProject -client $client
-} elseif ($srcType -eq "RepoBoard") {
+} elseif (($srcType -eq "" -and $srcRepoName -ne "") -or ($srcType -eq "RepoBoard")) {
     if (-not $srcRepoName) {
         throw "srcRepoName argument is required to copy from a repository board"
     }

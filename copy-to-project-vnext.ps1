@@ -6,8 +6,9 @@ using module "./types/item-content.psm1"
 param(
     # The id number of the source project to copy from
     [int]$srcProject,
-    # ProjectVNext, OrgBoard, RepoBoard
+    # ProjectVNext, OrgBoard, RepoBoard. Default is ProjectVNext if not set.
     [string]$srcType,
+    # The source repository name. Used only if -srcType is RepoBoard.
     [string]$srcRepoName=$null,
     # The id number of the destination project to copy to
     [int]$destProject,
@@ -25,7 +26,9 @@ param(
     [switch]$overrideExistingFieldValues,
     # Additional fields to add to the destination project which don't exist in the source. Useful for using this tool to merge projects and adding a de-duping column.
     [HashTable]$additionalFieldValues=$null,
+    # Mapping of source to destination Field names in case some names do not match. Only source Fields which do not have a destination Field of the same name need to be given.
     [HashTable]$srcToDestFieldNameMap=@{},
+    # Specifies the handling of items with a "Done" value for the Status Field. By default they are processed normally. If set, they are skipped.
     [switch]$ignoreDoneItems
 )
 

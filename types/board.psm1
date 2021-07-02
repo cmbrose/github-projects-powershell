@@ -187,6 +187,40 @@ class BoardColumn: GraphQLObjectBase {
     }
 }
 
+class BoardCard: GraphQLObjectBase {
+    # The GraphQL Id of the Issue/PR this corresponds to
+    [ItemContent]$Content
+
+    # The note content - e.g. a url to an issue in a different repo/org
+    [string]$Note
+
+    # Constructor from value returned by $FetchSubQuery
+    BoardCard(
+        [string]$id,
+        [string]$note,
+        [ItemContent]$content
+    ) {
+        $this.id = $id
+        $this.note = $note
+        $this.content = $content
+    }
+
+    # Constructor from value returned by $FetchSubQuery
+    BoardCard($queryResult) {
+        $this.id = $queryResult.id
+        $this.note = $queryResult.note
+        $this.content = [ItemContent]::new($queryResult.content)
+    }
+
+    static [string]$FetchSubQuery = "
+        id
+        note
+        content {
+            $([ItemContent]::FetchSubQuery)
+        }
+    "
+}
+
 function Add-NoteToColumn {
     [CmdletBinding()]
     [OutputType([BoardCard])]
@@ -351,7 +385,6 @@ function Add-CardToColumn {
     $column.cards += $card
 }
 
-
 function Remove-CardFromColumn {
     [CmdletBinding()]
     param(
@@ -360,41 +393,6 @@ function Remove-CardFromColumn {
     )
 
     $column.cards = $column.cards | Where-Object { $_.id -ne $card.id }
-}
-
-
-class BoardCard: GraphQLObjectBase {
-    # The GraphQL Id of the Issue/PR this corresponds to
-    [ItemContent]$Content
-
-    # The note content - e.g. a url to an issue in a different repo/org
-    [string]$Note
-
-    # Constructor from value returned by $FetchSubQuery
-    BoardCard(
-        [string]$id,
-        [string]$note,
-        [ItemContent]$content
-    ) {
-        $this.id = $id
-        $this.note = $note
-        $this.content = $content
-    }
-
-    # Constructor from value returned by $FetchSubQuery
-    BoardCard($queryResult) {
-        $this.id = $queryResult.id
-        $this.note = $queryResult.note
-        $this.content = [ItemContent]::new($queryResult.content)
-    }
-
-    static [string]$FetchSubQuery = "
-        id
-        note
-        content {
-            $([ItemContent]::FetchSubQuery)
-        }
-    "
 }
 
 function Get-BoardInternal {
@@ -414,6 +412,10 @@ function Get-BoardInternal {
         columnCursor = $null;
         cardCursor = ""
     }
+
+    # To fetch the board we have to run 2 cursors - one to scan columns and one to scan cards within each column.
+    # The GraphQL API doesn't support fetching a column by id, so the (easier) approach of fetching only columns
+    # and then fetching cards for each column isn't actually possible.
 
     do {
         $result = $client.MakeRequest($query, $variables)

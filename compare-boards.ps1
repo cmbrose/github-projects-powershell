@@ -12,10 +12,10 @@ param(
 
 $global:alreadyNotifiedItems = @()
 
-function Search-ContentIdInBoard {
+function Search-Board {
     param(
         [Board]$board,
-        [string]$contentId
+        $where
     )
 
     $board.columns | ForEach-Object {
@@ -24,34 +24,11 @@ function Search-ContentIdInBoard {
         $col.cards | ForEach-Object {
             $card = $_
 
-            if ($card.content.id -eq $contentId) {
-                return @($true, $col, $card)
+            if (Invoke-Command -ScriptBlock $where -ArgumentList $col, $card) {
+                return @($col, $card)
             }
         }
     }
-
-    return @($false, $null, $null)
-}
-
-function Search-NoteInBoard {
-    param(
-        [Board]$board,
-        [string]$note
-    )
-
-    $board.columns | ForEach-Object {
-        $col = $_
-
-        $col.cards | ForEach-Object {
-            $card = $_
-
-            if ($card.note -eq $note) {
-                return @($true, $col, $card)
-            }
-        }
-    }
-
-    return @($false, $null, $null)
 }
 
 function Compare-Boards {
@@ -84,15 +61,15 @@ function Compare-Boards {
                     return
                 }
 
-                $success, $col2, $card2 = Search-ContentIdInBoard -board $b2 -contentId $card1.content.id
+                $col2, $card2 = Search-Board -board $b2 -where { param($col, $card) $card.content.id -eq $card1.content.id }
 
-                if (-not $success) {
+                if (-not $col2) {
                     $typePath = $content.type -eq "Issue" ? "issues" : "pulls"
                     $note = "https://github.com/$($card1.content.repository)/$typePath/$($card1.content.number)"
 
-                    $success, $col2, $card2 = Search-NoteInBoard -board $b2 -note $note
+                    $col2, $card2 = Search-Board -board $b2 -where { param($col, $card) $card.note -eq $note }
 
-                    if ($success) {
+                    if ($col2) {
                         if ($targetColumn -ne $col2.name) {
                             Write-Warning "$b1Name has $contentSpecifier in '$($col1.name)', but $b2Name has it in '$($col2.name)'. Additionally in $b2Name it is a note."
                         } else {
@@ -126,10 +103,24 @@ function Compare-Boards {
                     return
                 }
 
-                $success, $col2, $card2 = Search-NoteInBoard -board $b2 -note $card1.note
+                $col2, $card2 = Search-Board -board $b2 -where { param($col, $card) $card.note -eq $card1.note }
 
-                if (-not $success) {
-                    Write-Warning "$b1Name has note $contentSpecifier, but $b2Name does not."
+                if (-not $col2) {
+                    if ($repo) {
+                        $col2, $card2 = Search-Board -board $b2 -where { param($col, $card) ($card.content.repository -eq $repo) -and ($card.content.number -eq $number) }
+                        if ($col2) {
+                            if ($targetColumn -ne $col2.name) {
+                                Write-Warning "$b1Name has note $contentSpecifier in '$($col1.name)', but $b2Name has it in '$($col2.name)'. Additionally in $b2Name it is a content card."
+                            } else {
+                                Write-Warning "$b1Name has $contentSpecifier as a note, but $b2Name has it as a content card."
+                            }
+                        } else {
+                            Write-Warning "$b1Name has note $contentSpecifier, but $b2Name does not."
+                        }
+                    } else {
+                        Write-Warning "$b1Name has note $contentSpecifier, but $b2Name does not."
+                    }
+                    
                     $global:alreadyNotifiedItems += $contentSpecifier
                 } elseif ($targetColumn -ne $col2.name) {
                     Write-Warning "$b1Name has note $contentSpecifier in '$($col1.name)', but $b2Name has it in '$($col2.name)'."
