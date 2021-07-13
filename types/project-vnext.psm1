@@ -18,7 +18,7 @@ class Project: GraphQLObjectBase {
     ) {
         $this.id = $id
         $this.fields = $fields | ForEach-Object { $_ }
-        $this.items = $items | ForEach-Object { $_.SetParent($this); $_ }
+        $this.items = (($items) ? ($items | ForEach-Object { $_.SetParent($this); $_ }) : @())
         $this.client = $client
     }
 
