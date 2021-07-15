@@ -114,11 +114,12 @@ function Get-RepositoryLabels {
 
     do {
         $result = $client.MakeRequest($query, $variables)
+        $labelsResult = $result.repository.labels
 
-        $labels += $result.repository.labels.edges.node | ForEach-Object { [Label]::new($_) }
+        $labels += $labelsResult.edges.node | ForEach-Object { [Label]::new($_) }
 
-        $variables.cursor = $result.pageInfo.endCursor
-    } while ($result.pageInfo.hasNextPage)
+        $variables.cursor = $labelsResult.pageInfo.endCursor
+    } while ($labelsResult.pageInfo.hasNextPage)
 
     $labels
 }
