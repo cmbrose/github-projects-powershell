@@ -504,4 +504,59 @@ function Get-Project {
     $project
 }
 
+
+function Get-AllProjectNumbers {
+    [CmdletBinding()]
+    [OutputType([int[]])]
+    param(
+        [string]$org,
+        [Parameter(Mandatory = $true, ParameterSetName = "Client")]
+        [GraphQLClient]$client,
+        [Parameter(Mandatory = $true, ParameterSetName = "Token")]
+        [string]$token
+    )
+
+    $query = "
+        query (`$org: String!, `$cursor: String) {
+            organization(login: `$org) {
+                projectsNext(first: 100, after: `$cursor) {
+                    edges {
+                        node { 
+                            number 
+                            closed
+                        } 
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        }
+    "
+
+    $variables = @{
+        cursor = $null;
+        org = $org;
+    }
+
+    if (-not $client) {
+        $client = New-GraphQLClient -Token $token
+    }
+
+    $projectNumbers = @()
+    
+    do {
+        $result = $client.MakeRequest($query, $variables)
+        $projects = $result.organization.projectsNext
+        
+        $projectNumbers += $projects.edges.node | Where-Object { -not $_.closed } | ForEach-Object { $_.number }
+        
+        $variables.cursor = $projects.pageInfo.endCursor            
+    } while ($projects.pageInfo.hasNextPage)
+
+    $projectNumbers
+}
+
 Export-ModuleMember -Function "Get-Project"
+Export-ModuleMember -Function "Get-AllProjectNumbers"
