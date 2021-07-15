@@ -30,7 +30,8 @@ class GraphQLClient {
     ) {
         $headers = @{
             "Authorization" = "Bearer $($this.token)";
-            "GraphQL-Features" = "projects_next_graphql";
+            "GraphQL-Features" = "projects_next_graphql"; # Memex preview
+            "Accept" = "application/vnd.github.bane-preview+json"; # Label preview
         }
 
         $body = @{

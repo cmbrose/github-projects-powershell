@@ -1,4 +1,5 @@
 using module "./graphql-object-base.psm1"
+using module "./label.psm1"
 using module "../common/client.psm1"
 
 # This represents either an Issue or a PR. The schemas technically are different, but the intersection is enough for our use.
@@ -47,6 +48,41 @@ class ItemContent: GraphQLObjectBase {
         $this.client = $client
     }
 
+    [void]Close() {
+        if ($this.type -eq "Issue") {
+            $query = "
+                mutation {
+                    closeIssue(
+                        input: {
+                            issueId: `"$($this.id)`"
+                        }
+                    ) {
+                        issue {
+                            id
+                        }
+                    }
+                    closePullRequest(input: {pullRequestId: ""})
+              }
+            "
+        } else {
+            $query = "
+                mutation {
+                    closePullRequest(
+                        input: {
+                            pullRequestId: `"$($this.id)`"
+                        }
+                    ) {
+                        pullRequest {
+                            id
+                        }
+                    }
+              }
+            "
+        }
+
+        $this.client.MakeRequest($query)
+    }
+
     # Note: this must come before FetchSubQuery it will be evaluated as an empty string
     static [string]$CommonQueryProperties = "
         id
@@ -71,25 +107,6 @@ class ItemContent: GraphQLObjectBase {
         ... on PullRequest {
             $([ItemContent]::CommonQueryProperties)
         }
-    "
-}
-
-class Label: GraphQLObjectBase {
-    [String]$Name
-
-    [String]$Color
-
-    # Constructor from value returned by $FetchSubQuery
-    Label($queryResult) {
-        $this.id = $queryResult.id
-        $this.name = $queryResult.name
-        $this.color = $queryResult.color
-    }
-
-    static [string]$FetchSubQuery = "
-        id
-        name
-        color
     "
 }
 

@@ -23,6 +23,12 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[string] $type`: `"Issue"` or `"Pull Request"`
 
+#### Methods
+
+> Note: methods marked with * will also perform a GraphQL mutation and update the server data.
+
+`[void]Close()` *: closes the Issue or Pull Request.
+
 ### Label
 
 The configuration for a label in a repo. Multiple `ItemContents` can reference the same `Label`.
@@ -34,6 +40,12 @@ The configuration for a label in a repo. Multiple `ItemContents` can reference t
 `[string] $name`: The name (display text) of the `Label`
 
 `[string] $color`: The hex code color of the `Label` background
+
+#### Module Functions
+
+`[Label] Add-NewLabelToRepo -repoId $repoId -name $name -color $color`: creates a new label with the given `name` and `color` (a hex color, e.g. `1d76db`) in the specified repository. Note: `repoId` is the GraphQL id, not the number. Returns the created `Label`. Will throw if a label with `name` already exists.
+
+`[void] Remove-LabelFromRepo -labelId $labelId`: permanently deletes the label with the given GraphQL id from the repo it exists in. Note: the `labelId` is a global id, so the repo itself does not need to be provided.
 
 ## Projects
 
