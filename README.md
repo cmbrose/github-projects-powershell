@@ -29,6 +29,10 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[void]Close()` *: closes the Issue or Pull Request.
 
+`[void]AddLabel([Label]$label)` *: adds the `Label` the Issue or Pull Request.
+
+`[void]RemoveLabel([Label]$label)` *: removes the `Label` from the Issue or Pull Request.
+
 ### Label
 
 The configuration for a label in a repo. Multiple `ItemContents` can reference the same `Label`.

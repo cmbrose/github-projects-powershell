@@ -61,7 +61,6 @@ class ItemContent: GraphQLObjectBase {
                             id
                         }
                     }
-                    closePullRequest(input: {pullRequestId: ""})
               }
             "
         } else {
@@ -81,6 +80,48 @@ class ItemContent: GraphQLObjectBase {
         }
 
         $this.client.MakeRequest($query)
+    }
+
+    [void]AddLabel([Label]$label) {
+        $query = "
+            mutation {    
+                addLabelsToLabelable(
+                    input: {
+                        labelableId: `"$($this.id)`",
+                        labelIds: `"$($label.id)`"
+                    }
+                ) {
+                    labelable {
+                        $([ItemContent]::FetchSubQuery)
+                    }
+                }
+            }
+        "
+
+        $result = $this.client.MakeRequest($query)
+
+        $this.labels = $result.addLabelsToLabelable.labelable.labels.edges.node | ForEach-Object { [Label]::new($_) }
+    }
+
+    [void]RemoveLabel([Label]$label) {
+        $query = "
+            mutation {    
+                removeLabelsFromLabelable(
+                    input: {
+                        labelableId: `"$($this.id)`",
+                        labelIds: `"$($label.id)`"
+                    }
+                ) {
+                    labelable {
+                        $([ItemContent]::FetchSubQuery)
+                    }
+                }
+            }
+        "
+
+        $result = $this.client.MakeRequest($query)
+
+        $this.labels = $result.removeLabelsFromLabelable.labelable.labels.edges.node | ForEach-Object { [Label]::new($_) }
     }
 
     # Note: this must come before FetchSubQuery it will be evaluated as an empty string
