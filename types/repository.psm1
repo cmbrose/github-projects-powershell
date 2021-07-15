@@ -3,7 +3,7 @@ using module "./label.psm1"
 using module "../common/client.psm1"
 
 class Repository: GraphQLObjectBase {
-    [String]$Name
+    [string]$Name
 
     [Label[]]$Labels
 

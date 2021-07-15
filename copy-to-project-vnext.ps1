@@ -105,6 +105,7 @@ function ConvertBoardTo-Project {
 
     [Project]::new(
         "fake_project_$($board.id)",
+        "fake_project_$($board.id)",
         $field,
         $items,
         $null # client - not used by the fake project 

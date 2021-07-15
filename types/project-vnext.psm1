@@ -8,15 +8,19 @@ class Project: GraphQLObjectBase {
 
     [ProjectItem[]]$Items
 
+    [string]$Title
+
     hidden [GraphQLClient]$client
 
     Project(
         [string]$id,
+        [string]$title,
         [ProjectField[]]$fields,
         [ProjectItem[]]$items,
         [GraphQLClient]$client
     ) {
         $this.id = $id
+        $this.title = $title
         $this.fields = $fields | ForEach-Object { $_ }
         $this.items = (($items) ? ($items | ForEach-Object { $_.SetParent($this); $_ }) : @())
         $this.client = $client
@@ -318,7 +322,7 @@ class ProjectField: GraphQLObjectBase {
 }
 
 class ProjectFieldOption: GraphQLObjectBase {
-    [String]$Name
+    [string]$Name
 
     ProjectFieldOption(
         [string]$id,
@@ -478,6 +482,7 @@ function Get-Project {
             organization(login: `$org) {
                 projectNext(number: `$id) {
                     id
+                    title
                 }
             }
         }
@@ -496,6 +501,7 @@ function Get-Project {
 
     $project = [Project]::new(
         $result.organization.projectNext.id,
+        $result.organization.projectNext.title,
         (Get-ProjectFields -org $org -projectNumber $projectNumber -Client $client),
         (Get-ProjectItems -org $org -projectNumber $projectNumber -Client $client),
         $client

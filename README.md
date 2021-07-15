@@ -23,6 +23,10 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[string] $type`: `"Issue"` or `"Pull Request"`
 
+`[bool] $closed`: if the Issue or Pull Request is closed
+
+`[Label[]] $labels`: the `Labels` on the Issue or Pull Request
+
 #### Methods
 
 > Note: methods marked with * will also perform a GraphQL mutation and update the server data.
@@ -73,6 +77,8 @@ The top level entity for a Project vNext which contains the Fields and Items
 `[ProjectField[]] $fields`: The `ProjectField`s
 
 `[ProjectItem[]] $fields`: The `ProjectItem`s
+
+`[string] $title`: The title (aka name) or the `Project`
 
 #### Methods
 

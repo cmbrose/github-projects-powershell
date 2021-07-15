@@ -2,9 +2,9 @@ using module "./graphql-object-base.psm1"
 using module "../common/client.psm1"
 
 class Label: GraphQLObjectBase {
-    [String]$Name
+    [string]$Name
 
-    [String]$Color
+    [string]$Color
 
     # Constructor from value returned by $FetchSubQuery
     Label($queryResult) {

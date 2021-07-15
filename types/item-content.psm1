@@ -8,10 +8,12 @@ class ItemContent: GraphQLObjectBase {
     [int]$Number
 
     # The repository the item belongs to in the form <organization>/<repository>
-    [String]$Repository
+    [string]$Repository
 
     # "Issue" or "PullRequest"
-    [String]$Type
+    [string]$Type
+
+    [bool]$Closed
 
     [Label[]]$Labels
 
@@ -22,12 +24,14 @@ class ItemContent: GraphQLObjectBase {
         [int]$number,
         [string]$repository,
         [string]$type,
+        [bool]$closed,
         [Label[]]$labels
     ) {
         $this.id = $id
         $this.number = $number
         $this.repository = $repository
         $this.type = $type
+        $this.closed = $closed
         $this.labels = $labels
 
         if ($this.type -eq "pulls") {
@@ -44,6 +48,7 @@ class ItemContent: GraphQLObjectBase {
         $this.number = $queryResult.number
         $this.repository = $queryResult.repository.nameWithOwner
         $this.type = $queryResult.__typename
+        $this.closed = $queryResult.closed
         $this.labels = $queryResult.labels.edges.node | ForEach-Object { [Label]::new($_) }
         $this.client = $client
     }
@@ -128,6 +133,7 @@ class ItemContent: GraphQLObjectBase {
     static [string]$CommonQueryProperties = "
         id
         number
+        closed
         repository {
             nameWithOwner
         }
