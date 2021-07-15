@@ -8,6 +8,7 @@ Utility scripts and classes for working with GitHub projects. Specifically suppo
 ## Common Types
 
 ### ItemContent
+
 A single item on a Project or Board which corresponds to a single Issue or Pull Request.
 
 > Note: `Board`s may also have notes, which are different than `ItemContent`. A `Board` card will either have an `ItemContent` or a note, never both.
@@ -21,6 +22,18 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 `[string] $repository`: the full repository name in the form `org/repo`
 
 `[string] $type`: `"Issue"` or `"Pull Request"`
+
+### Label
+
+The configuration for a label in a repo. Multiple `ItemContents` can reference the same `Label`.
+
+#### Properties
+
+`[string] $id`: The GraphQL `id`
+
+`[string] $name`: The name (display text) of the `Label`
+
+`[string] $color`: The hex code color of the `Label` background
 
 ## Projects
 

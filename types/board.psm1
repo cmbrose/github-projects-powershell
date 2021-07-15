@@ -42,13 +42,16 @@ class Board: GraphQLObjectBase {
         $this.client = $client
         $this.id = $queryResult.Id
         $this.columns = $queryResult.columns.edges.node | ForEach-Object {
-            [BoardColumn]::new($_)
+            [BoardColumn]::new($_, $client)
         }
     }
 
-    hidden [void]MergeNextQueryPage($queryResult) {
+    hidden [void]MergeNextQueryPage(
+        $queryResult,
+        [GraphQLClient]$client
+    ) {
         $queryResult.columns.edges.node | ForEach-Object {
-            $nextColumn = [BoardColumn]::new($_)
+            $nextColumn = [BoardColumn]::new($_, $client)
 
             $existingColumn = $this.columns | Where-Object { $_.id -eq $nextColumn.id }
 
@@ -150,11 +153,14 @@ class BoardColumn: GraphQLObjectBase {
     }
 
     # Constructor from value returned by $FetchSubQuery
-    BoardColumn($queryResult) {
+    BoardColumn(
+        $queryResult,
+        [GraphQLClient]$client
+    ) {
         $this.id = $queryResult.id
         $this.name = $queryResult.name
         $this.cards = $queryResult.cards.edges.node | ForEach-Object {
-            [BoardCard]::new($_)
+            [BoardCard]::new($_, $client)
         }
     }
 
@@ -206,10 +212,13 @@ class BoardCard: GraphQLObjectBase {
     }
 
     # Constructor from value returned by $FetchSubQuery
-    BoardCard($queryResult) {
+    BoardCard(
+        $queryResult,
+        [GraphQLClient]$client
+    ) {
         $this.id = $queryResult.id
         $this.note = $queryResult.note
-        $this.content = [ItemContent]::new($queryResult.content)
+        $this.content = [ItemContent]::new($queryResult.content, $client)
     }
 
     static [string]$FetchSubQuery = "
@@ -425,7 +434,7 @@ function Get-BoardInternal {
         if (-not $board) {
             $board = [Board]::new($org, $repoName, $project, $client)
         } else {
-            $board.MergeNextQueryPage($project)
+            $board.MergeNextQueryPage($project, $client)
         }
 
         $cursors = [Board]::GetNextCursorsFromQueryResult($project, $cursors)

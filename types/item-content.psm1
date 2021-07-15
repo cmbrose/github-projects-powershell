@@ -12,16 +12,22 @@ class ItemContent: GraphQLObjectBase {
     # "Issue" or "PullRequest"
     [String]$Type
 
+    [Label[]]$Labels
+
+    hidden [GraphQLClient]$Client
+
     ItemContent(
         [string]$id,
         [int]$number,
         [string]$repository,
-        [string]$type
+        [string]$type,
+        [Label[]]$labels
     ) {
         $this.id = $id
         $this.number = $number
         $this.repository = $repository
         $this.type = $type
+        $this.labels = $labels
 
         if ($this.type -eq "pulls") {
             $this.type = "PullRequest"
@@ -29,29 +35,61 @@ class ItemContent: GraphQLObjectBase {
     }
 
     # Constructor from value returned by $FetchSubQuery
-    ItemContent($queryResult) {
+    ItemContent(
+        $queryResult,
+        [GraphQLClient]$client
+    ) {
         $this.id = $queryResult.id
         $this.number = $queryResult.number
         $this.repository = $queryResult.repository.nameWithOwner
         $this.type = $queryResult.__typename
+        $this.labels = $queryResult.labels.edges.node | ForEach-Object { [Label]::new($_) }
+        $this.client = $client
     }
+
+    # Note: this must come before FetchSubQuery it will be evaluated as an empty string
+    static [string]$CommonQueryProperties = "
+        id
+        number
+        repository {
+            nameWithOwner
+        }
+        labels(first: 100) {
+            edges {
+                node {
+                    $([Label]::FetchSubQuery)
+                }
+            }
+        }
+    "
 
     static [string]$FetchSubQuery = "
         __typename
         ... on Issue {
-            id
-            number
-            repository {
-                nameWithOwner
-            }
+            $([ItemContent]::CommonQueryProperties)
         }
         ... on PullRequest {
-            id
-            number
-            repository {
-                nameWithOwner
-            }
+            $([ItemContent]::CommonQueryProperties)
         }
+    "
+}
+
+class Label: GraphQLObjectBase {
+    [String]$Name
+
+    [String]$Color
+
+    # Constructor from value returned by $FetchSubQuery
+    Label($queryResult) {
+        $this.id = $queryResult.id
+        $this.name = $queryResult.name
+        $this.color = $queryResult.color
+    }
+
+    static [string]$FetchSubQuery = "
+        id
+        name
+        color
     "
 }
 
@@ -90,7 +128,7 @@ function Get-ItemContent {
 
     $result = $client.MakeRequest($query, $variables)
 
-    [ItemContent]::new($result.repository.issueOrPullRequest)
+    [ItemContent]::new($result.repository.issueOrPullRequest, $client)
 }
 
 Export-ModuleMember -Function "Get-ItemContent"

@@ -81,7 +81,7 @@ class Project: GraphQLObjectBase {
             throw $_
         }
 
-        $item = [ProjectItem]::new($result.addProjectNextItem.projectNextItem)
+        $item = [ProjectItem]::new($result.addProjectNextItem.projectNextItem, $this.client)
 
         # If the item already exists in the board the API just returns the same item with the same id
         # In this case, remove the item that already exists
@@ -102,6 +102,8 @@ class ProjectItem: GraphQLObjectBase {
 
     hidden [Project]$Parent
 
+    hidden [GraphQLClient]$Client
+
     ProjectItem(
         [string]$id,
         [ItemContent]$content,
@@ -110,20 +112,24 @@ class ProjectItem: GraphQLObjectBase {
         $this.id = $id
         $this.content = $content
         $this.fieldValues = $fieldValues
+        $this.client = $null
     }
 
     # Constructor from value returned by $FetchSubQuery
     ProjectItem(
-        $queryResult
+        $queryResult,
+        [GraphQLClient]$client
     ) {
         $this.id = $queryResult.id
-        $this.content = [ItemContent]::new($queryResult.content)
+        $this.content = [ItemContent]::new($queryResult.content, $client)
 
         $this.fieldValues = $queryResult.fieldValues.edges.node | ForEach-Object {
             $fieldId = $_.projectField.id
 
             [ProjectFieldValue]::new($fieldId, $_.value)
         }
+
+        $this.client = $client
     }
 
     [void]SetParent(
@@ -218,7 +224,7 @@ class ProjectItem: GraphQLObjectBase {
         }
 
         try {
-            $result = $this.parent.client.MakeRequest($query, $variables)
+            $_ = $this.client.MakeRequest($query, $variables)
         } catch [Exception] {
             Write-Error "Failed to set field value for item $($this.id)"
             throw $_
@@ -385,7 +391,7 @@ function Get-ProjectItems {
                     return
                 }
 
-                [ProjectItem]::new($_)
+                [ProjectItem]::new($_, $client)
             }
 
             $pageInfo = $result.organization.projectNext.items.pageInfo
