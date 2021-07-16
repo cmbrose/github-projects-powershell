@@ -82,7 +82,8 @@ function ConvertBoardTo-Project {
                     (Get-FakeItemContentId -repo $repo -number $number),
                     $number,
                     $repo,
-                    $type
+                    $type,
+                    $false
                 )
 
                 return [ProjectItem]::new(
