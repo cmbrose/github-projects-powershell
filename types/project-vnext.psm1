@@ -359,35 +359,43 @@ function Get-ProjectItems {
     begin {
         $pageSize = 100
 
-        $query = "
-            query (`$id: Int!, `$org: String!, `$cursor: String!) {
-                organization(login: `$org) {
-                    projectNext(number: `$id) {
-                        items(first: $pageSize, after: `$cursor) {                
-                            edges {
-                                node {
-                                    $([ProjectItem]::FetchSubQuery)
+        # It seems that specifying an empty string as an initial cursor
+        # results in the following error:
+        #     "`` does not appear to be a valid cursor."
+        # Rather than maintain two queries, just don't use query variables.
+        Function Get-Query {
+            param(
+                [string]$cursor
+            )
+            if ($cursor) {
+                $afterStr = ", after: `"$cursor`""
+            }
+            return "
+                query {
+                    organization(login: `"$org`") {
+                        projectNext(number: $projectNumber) {
+                            items(first: $pageSize $afterStr) {                
+                                edges {
+                                    node {
+                                        $([ProjectItem]::FetchSubQuery)
+                                    }
                                 }
-                            }
-                            pageInfo {
-                                endCursor
-                                hasNextPage
+                                pageInfo {
+                                    endCursor
+                                    hasNextPage
+                                }
                             }
                         }
                     }
                 }
-            }
-        "
-
-        $variables = @{
-            id = $projectNumber;
-            org = $org;
-            cursor = "";
+            "
         }
+
+        $cursor = ""
     }
     process {
         do {        
-            $result = $client.MakeRequest($query, $variables)
+            $result = $client.MakeRequest((Get-Query -cursor $cursor), $variables)
 
             $result.organization.projectNext.items.edges.node | ForEach-Object {
                 if (-not $_.content) {
@@ -400,7 +408,7 @@ function Get-ProjectItems {
 
             $pageInfo = $result.organization.projectNext.items.pageInfo
 
-            $variables.cursor = $pageInfo.endCursor
+            $cursor = $pageInfo.endCursor
         } while ($pageInfo.hasNextPage)
     }
 }
