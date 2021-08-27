@@ -360,7 +360,7 @@ function Get-ProjectItems {
         $pageSize = 100
 
         $query = "
-            query (`$id: Int!, `$org: String!, `$cursor: String!) {
+            query (`$id: Int!, `$org: String!, `$cursor: String) {
                 organization(login: `$org) {
                     projectNext(number: `$id) {
                         items(first: $pageSize, after: `$cursor) {                
@@ -382,7 +382,7 @@ function Get-ProjectItems {
         $variables = @{
             id = $projectNumber;
             org = $org;
-            cursor = "";
+            cursor = $null;
         }
     }
     process {
