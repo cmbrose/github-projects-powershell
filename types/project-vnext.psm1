@@ -147,7 +147,7 @@ class ProjectItem: GraphQLObjectBase {
     ) {
         $value = $this.GetFieldValue($fieldNameOrId)
 
-        return $null -ne $value
+        return "" -ne $value
     }
 
     [string]GetFieldValue(
