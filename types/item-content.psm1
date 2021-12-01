@@ -13,9 +13,13 @@ class ItemContent: GraphQLObjectBase {
     # "Issue" or "PullRequest"
     [string]$Type
 
+    [string]$Body
+
     [bool]$Closed
 
     [Label[]]$Labels
+
+    [Comment[]]$Comments = $null
 
     hidden [GraphQLClient]$Client
 
@@ -24,15 +28,19 @@ class ItemContent: GraphQLObjectBase {
         [int]$number,
         [string]$repository,
         [string]$type,
+        [string]$body,
         [bool]$closed,
-        [Label[]]$labels
+        [Label[]]$labels,
+        [Comment[]]$comments
     ) {
         $this.id = $id
         $this.number = $number
         $this.repository = $repository
         $this.type = $type
+        $this.body = $body
         $this.closed = $closed
         $this.labels = $labels
+        $this.comments = $comments
 
         if ($this.type -eq "pulls") {
             $this.type = "PullRequest"
@@ -48,9 +56,11 @@ class ItemContent: GraphQLObjectBase {
         $this.number = $queryResult.number
         $this.repository = $queryResult.repository.nameWithOwner
         $this.type = $queryResult.__typename
+        $this.body = $queryResult.body
         $this.closed = $queryResult.closed
         $this.labels = $queryResult.labels.edges.node | ForEach-Object { [Label]::new($_) }
         $this.client = $client
+        $this.comments = $null # Call FetchComments() to populate
     }
 
     [void]Close() {
@@ -129,11 +139,109 @@ class ItemContent: GraphQLObjectBase {
         $this.labels = $result.removeLabelsFromLabelable.labelable.labels.edges.node | ForEach-Object { [Label]::new($_) }
     }
 
-    # Note: this must come before FetchSubQuery it will be evaluated as an empty string
+    [void]FetchComments() {
+        $pageSize = 100
+
+        $commentSubquery = "
+            comments(first: $pageSize, after: `$cursor) {
+                edges {
+                    node {
+                        $([Comment]::FetchSubQuery)
+                    }
+                }
+                pageInfo {
+                    endCursor
+                    hasNextPage
+                }
+            }
+        "
+
+        $query = "
+            query (`$id: Int!, `$org: String!, `$repositoryName: String!, `$cursor: String) {
+                repository(name: `$repositoryName, owner: `$org) {
+                    issueOrPullRequest(number: `$id) {
+                        ... on Issue {
+                            $commentSubquery
+                        }
+                        ... on PullRequest {
+                            $commentSubquery
+                        }
+                    }
+                }
+            }
+        "
+
+        $org, $repositoryName = $this.Repository.Split('/')
+
+        $variables = @{
+            repositoryName = $repositoryName;
+            org = $org;
+            id = $this.Number
+        }
+
+        $this.Comments = @()
+
+        $pageInfo = $null
+
+        do {        
+            $result = $this.Client.MakeRequest($query, $variables)
+
+            $commentsResult = $result.repository.issueOrPullRequest.comments
+
+            $this.Comments += $commentsResult.edges.node | ForEach-Object {
+                [Comment]::new($_, $client, $this)
+            }
+
+            $pageInfo = $commentsResult.pageInfo
+
+            $variables.cursor = $pageInfo.endCursor
+        } while ($pageInfo.hasNextPage)
+    }
+
+    [void]UpdateBody([string]$newBody) {
+        if ($this.type -eq "Issue") {
+            $query = "
+                mutation {
+                    updateIssue(
+                        input: {
+                            id: `"$($this.id)`",
+                            body: `"$newBody`"
+                        }
+                    ) {
+                        issue {
+                            id
+                        }
+                    }
+                }
+            "
+        } else {
+            $query = "
+                mutation {
+                    updateIssue(
+                        input: {
+                            pullRequestId: `"$($this.id)`",
+                            body: `"$newBody`"
+                        }
+                    ) {
+                        pullRequest {
+                            id
+                        }
+                    }
+                }
+            "
+        }
+
+        $this.client.MakeRequest($query)
+
+        $this.Body = $newBody
+    }
+
+    # Note: this must come before FetchSubQuery or it will be evaluated as an empty string
     static [string]$CommonQueryProperties = "
         id
         number
         closed
+        body
         repository {
             nameWithOwner
         }
@@ -157,6 +265,61 @@ class ItemContent: GraphQLObjectBase {
     "
 }
 
+class Comment: GraphQLObjectBase {
+    hidden [ItemContent]$Parent
+
+    [string]$Body
+
+    [GraphQLClient]$Client
+
+    # Constructor from value returned by $FetchSubQuery
+    Comment(
+        $queryResult,
+        [GraphQLClient]$client,
+        [ItemContent]$parent
+    ) {
+        $this.id = $queryResult.id
+        $this.body = $queryResult.body
+        $this.client = $client
+        $this.parent = $parent
+    }
+
+    [void]UpdateBody([string]$newBody) {
+        if ($this.Parent.Type -eq "Issue") {
+            $query = "
+                mutation {
+                    updateIssueComment(input: {
+                        id: `"$($this.Id)`",
+                        body: `"$newBody`"
+                    }) {
+                        issueComment { id }
+                    }
+                }
+            "
+        } else {
+            $query = "
+                mutation {
+                    updatePullRequestReviewComment(input: {
+                        pullRequestReviewCommentId: `"$($this.Id)`",
+                        body: `"$newBody`"
+                    }) {
+                        pullRequestReviewComment { id }
+                    }
+                }
+            "
+        }
+
+        $this.client.MakeRequest($query)
+
+        $this.Body = $newBody
+    }
+
+    static [string]$FetchSubQuery = "
+        id
+        body
+    "
+}
+
 function Get-ItemContent {
     [CmdletBinding()]
     [OutputType([ItemContent])]
@@ -164,6 +327,7 @@ function Get-ItemContent {
         [string]$org,
         [string]$repositoryName,
         [int]$number,
+        [switch]$fetchComments,
         [Parameter(Mandatory = $true, ParameterSetName = "Client")]
         [GraphQLClient]$client,
         [Parameter(Mandatory = $true, ParameterSetName = "Token")]
@@ -192,7 +356,13 @@ function Get-ItemContent {
 
     $result = $client.MakeRequest($query, $variables)
 
-    [ItemContent]::new($result.repository.issueOrPullRequest, $client)
+   $itemContent = [ItemContent]::new($result.repository.issueOrPullRequest, $client)
+
+   if ($fetchComments) {
+       $itemContent.FetchComments()
+   }
+
+   $itemContent
 }
 
 Export-ModuleMember -Function "Get-ItemContent"

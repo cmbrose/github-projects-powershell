@@ -23,9 +23,13 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[string] $type`: `"Issue"` or `"Pull Request"`
 
+`[string] $body`: The Issue or Pull Request body
+
 `[bool] $closed`: if the Issue or Pull Request is closed
 
-`[Label[]] $labels`: the `Labels` on the Issue or Pull Request
+`[Label[]] $labels`: the `Label`s on the Issue or Pull Request
+
+`[Comment[]] $comments`: the `Comment`s on the Issue or Pull request. Note: this is `$null` by default, call `$itemContent.FetchComments()` to populate the field.
 
 #### Methods
 
@@ -37,9 +41,29 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[void]RemoveLabel([Label]$label)` *: removes the `Label` from the Issue or Pull Request.
 
+`[void]UpdateBody([string]$newBody)` *: updates the Issue or Pull Request body to `$newBody`
+
+`[void]FetchComments()`: fetches the Issue or Pull Request's `Comment`s. The `$comments` field will be `$null` unless this is called.
+
+### Comment
+
+A single comment on an `ItemContent` - an Issue or Pull Request.
+
+> Note: this type is currently only accessible through it's parent `ItemContent`, it cannot be directly fetched.
+
+#### Properties
+
+`[string] $id`: The GraphQL `id`.
+
+`[string] $body`: The comment body.
+
+#### Methods
+
+`[void]UpdateBody([string]$newBody)` *: updates the `Comment`'s body to `$newBody`
+
 ### Label
 
-The configuration for a label in a repo. Multiple `ItemContents` can reference the same `Label`.
+The configuration for a label in a repo. Multiple `ItemContent`s can reference the same `Label`.
 
 #### Properties
 
