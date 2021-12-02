@@ -58,7 +58,13 @@ class ItemContent: GraphQLObjectBase {
         $this.type = $queryResult.__typename
         $this.body = $queryResult.body
         $this.closed = $queryResult.closed
-        $this.labels = $queryResult.labels.edges.node | ForEach-Object { [Label]::new($_) }
+
+        if ($queryResult.labels.edges.node) {
+            $this.labels = $queryResult.labels.edges.node | ForEach-Object { [Label]::new($_) }
+        } else {
+            $this.labels = @()
+        }
+
         $this.client = $client
         $this.comments = $null # Call FetchComments() to populate
     }
@@ -356,13 +362,13 @@ function Get-ItemContent {
 
     $result = $client.MakeRequest($query, $variables)
 
-   $itemContent = [ItemContent]::new($result.repository.issueOrPullRequest, $client)
+    $itemContent = [ItemContent]::new($result.repository.issueOrPullRequest, $client)
 
-   if ($fetchComments) {
-       $itemContent.FetchComments()
-   }
+    if ($fetchComments) {
+        $itemContent.FetchComments()
+    }
 
-   $itemContent
+    $itemContent
 }
 
 Export-ModuleMember -Function "Get-ItemContent"
