@@ -41,9 +41,9 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[void]RemoveLabel([Label]$label)` *: removes the `Label` from the Issue or Pull Request.
 
-`[void]UpdateBody([string]$newBody)` *: updates the Issue or Pull Request body to `$newBody`
+`[void]UpdateBody([string]$newBody)` *: updates the Issue or Pull Request body to `$newBody`. Note: double quotes in `$newBody` will be escaped automaticially - they should not be escaped before calling this.
 
-`[void]AddComment([string]$bodyText)` *: adds a new `Comment` to the `ItemContent` and returns it. The new `Comment` will appear in `.Comments` if `Comment`s have already been fetched.
+`[void]AddComment([string]$bodyText)` *: adds a new `Comment` to the `ItemContent` and returns it. The new `Comment` will appear in `.Comments` if `Comment`s have already been fetched. Note: double quotes in `$bodyText` will be escaped automaticially - they should not be escaped before calling this.
 
 `[void]FetchComments()`: fetches the Issue or Pull Request's `Comment`s. The `.Comments` field will be `$null` unless this is called.
 
@@ -59,9 +59,13 @@ A single comment on an `ItemContent` - an Issue or Pull Request.
 
 `[string] $body`: The comment body.
 
+`[string] $author`: The `Comment` author's login.
+
+`[string] $createdAt`: The UTC time the `Comment` was created at.
+
 #### Methods
 
-`[void]UpdateBody([string]$newBody)` *: updates the `Comment`'s body to `$newBody`
+`[void]UpdateBody([string]$newBody)` *: updates the `Comment`'s body to `$newBody`. Note: double quotes in `$newBody` will be escaped automaticially - they should not be escaped before calling this.
 
 ### Label
 
