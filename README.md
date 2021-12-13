@@ -43,7 +43,9 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[void]UpdateBody([string]$newBody)` *: updates the Issue or Pull Request body to `$newBody`
 
-`[void]FetchComments()`: fetches the Issue or Pull Request's `Comment`s. The `$comments` field will be `$null` unless this is called.
+`[void]AddComment([string]$bodyText)` *: adds a new `Comment` to the `ItemContent` and returns it. The new `Comment` will appear in `.Comments` if `Comment`s have already been fetched.
+
+`[void]FetchComments()`: fetches the Issue or Pull Request's `Comment`s. The `.Comments` field will be `$null` unless this is called.
 
 ### Comment
 

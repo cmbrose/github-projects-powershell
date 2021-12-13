@@ -194,8 +194,12 @@ class ItemContent: GraphQLObjectBase {
 
             $commentsResult = $result.repository.issueOrPullRequest.comments
 
+            if (-not $commentsResult.edges.node) {
+                break
+            }
+
             $this.Comments += $commentsResult.edges.node | ForEach-Object {
-                [Comment]::new($_, $client, $this)
+                [Comment]::new($_, $this.Client, $this)
             }
 
             $pageInfo = $commentsResult.pageInfo
@@ -205,13 +209,15 @@ class ItemContent: GraphQLObjectBase {
     }
 
     [void]UpdateBody([string]$newBody) {
+        $newBody = $newBody.Replace("`"", "\`"")
+
         if ($this.type -eq "Issue") {
             $query = "
-                mutation {
+                mutation (`$id: String!, `$body: String!) {
                     updateIssue(
                         input: {
-                            id: `"$($this.id)`",
-                            body: `"$newBody`"
+                            id: `$id,
+                            body: `$body
                         }
                     ) {
                         issue {
@@ -222,11 +228,11 @@ class ItemContent: GraphQLObjectBase {
             "
         } else {
             $query = "
-                mutation {
+                mutation (`$id: String!, `$body: String!) {
                     updateIssue(
                         input: {
-                            pullRequestId: `"$($this.id)`",
-                            body: `"$newBody`"
+                            pullRequestId: `$id,
+                            body: `$body
                         }
                     ) {
                         pullRequest {
@@ -237,9 +243,49 @@ class ItemContent: GraphQLObjectBase {
             "
         }
 
-        $this.client.MakeRequest($query)
+        $variables = @{
+            id = $this.Id;
+            body = $newBody;
+        }
+
+        $this.client.MakeRequest($query, $variables)
 
         $this.Body = $newBody
+    }
+
+    [Comment]AddComment([string]$bodyText) {
+        $bodyText = $bodyText.Replace("`"", "\`"")
+
+        $query = "
+            mutation (`$id: String!, `$body: String!) {
+                addComment(input: {
+                    subjectId: `$id,
+                    body: `$body
+                }) {
+                    commentEdge {
+                        node {
+                            $([Comment]::FetchSubQuery)
+                        }
+                    }
+                }
+            }
+        "
+
+        $variables = @{
+            id = $this.Id;
+            body = $bodyText;
+        }
+
+        $result = $this.client.MakeRequest($query, $variables)
+
+        $comment = [Comment]::new($result.addComment.commentEdge.node, $this.client, $this)
+
+        # Comments haven't been fetched, user should call FetchComments
+        if ($this.Comments) {
+            $this.Comments += $comment
+        }
+
+        return $comment
     }
 
     # Note: this must come before FetchSubQuery or it will be evaluated as an empty string
@@ -275,6 +321,8 @@ class Comment: GraphQLObjectBase {
     hidden [ItemContent]$Parent
 
     [string]$Body
+    [string]$Author
+    [string]$CreatedAt
 
     [GraphQLClient]$Client
 
@@ -286,17 +334,21 @@ class Comment: GraphQLObjectBase {
     ) {
         $this.id = $queryResult.id
         $this.body = $queryResult.body
+        $this.author = $queryResult.author.login
+        $this.createdAt = $queryResult.createdAt
         $this.client = $client
         $this.parent = $parent
     }
 
     [void]UpdateBody([string]$newBody) {
+        $newBody = $newBody.Replace("`"", "\`"")
+
         if ($this.Parent.Type -eq "Issue") {
             $query = "
-                mutation {
+                mutation (`$id: String!, `$body: String!) {
                     updateIssueComment(input: {
-                        id: `"$($this.Id)`",
-                        body: `"$newBody`"
+                        id: `$id,
+                        body: `$body
                     }) {
                         issueComment { id }
                     }
@@ -304,10 +356,10 @@ class Comment: GraphQLObjectBase {
             "
         } else {
             $query = "
-                mutation {
+                mutation (`$id: String!, `$body: String!) {
                     updatePullRequestReviewComment(input: {
-                        pullRequestReviewCommentId: `"$($this.Id)`",
-                        body: `"$newBody`"
+                        pullRequestReviewCommentId: `$id,
+                        body: `$body
                     }) {
                         pullRequestReviewComment { id }
                     }
@@ -315,7 +367,12 @@ class Comment: GraphQLObjectBase {
             "
         }
 
-        $this.client.MakeRequest($query)
+         $variables = @{
+            id = $this.Id;
+            body = $newBody;
+        }
+
+        $this.client.MakeRequest($query, $variables)
 
         $this.Body = $newBody
     }
@@ -323,6 +380,10 @@ class Comment: GraphQLObjectBase {
     static [string]$FetchSubQuery = "
         id
         body
+        author {
+            login
+        }
+        createdAt
     "
 }
 
