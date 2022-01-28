@@ -83,7 +83,13 @@ function ConvertBoardTo-Project {
                     $number,
                     $repo,
                     $type,
-                    $false
+                    "mock-author",
+                    "mock-title",
+                    "mock-body",
+                    "mock-created-at",
+                    $false,
+                    $null,
+                    $null
                 )
 
                 return [ProjectItem]::new(

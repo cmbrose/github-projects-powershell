@@ -13,7 +13,13 @@ class ItemContent: GraphQLObjectBase {
     # "Issue" or "PullRequest"
     [string]$Type
 
+    [string]$Author
+
+    [string]$Title
+
     [string]$Body
+
+    [string]$CreatedAt
 
     [bool]$Closed
 
@@ -28,7 +34,10 @@ class ItemContent: GraphQLObjectBase {
         [int]$number,
         [string]$repository,
         [string]$type,
+        [string]$author,
+        [string]$title,
         [string]$body,
+        [string]$createdAt,
         [bool]$closed,
         [Label[]]$labels,
         [Comment[]]$comments
@@ -37,9 +46,12 @@ class ItemContent: GraphQLObjectBase {
         $this.number = $number
         $this.repository = $repository
         $this.type = $type
+        $this.author = $author
+        $this.title = $title
         $this.body = $body
+        $this.createdAt = $createdAt
         $this.closed = $closed
-        $this.labels = $labels
+        $this.labels = $labels ?? @()
         $this.comments = $comments
 
         if ($this.type -eq "pulls") {
@@ -56,7 +68,10 @@ class ItemContent: GraphQLObjectBase {
         $this.number = $queryResult.number
         $this.repository = $queryResult.repository.nameWithOwner
         $this.type = $queryResult.__typename
+        $this.title = $queryResult.title
         $this.body = $queryResult.body
+        $this.author = $queryResult.author.login
+        $this.createdAt = $queryResult.createdAt
         $this.closed = $queryResult.closed
 
         if ($queryResult.labels.edges.node) {
@@ -293,7 +308,12 @@ class ItemContent: GraphQLObjectBase {
         id
         number
         closed
+        title
         body
+        author {
+            login
+        }
+        createdAt
         repository {
             nameWithOwner
         }

@@ -15,15 +15,21 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 #### Properties
 
-`[string] $id`: The GraphQL `id` - note this is *not* the same as the number.
+`[string] $id`: the GraphQL `id` - note this is *not* the same as the number.
 
-`[int] $number`: The Issue or Pull Request number. This is what is usually referred to as the "id".
+`[int] $number`: the Issue or Pull Request number. This is what is usually referred to as the "id".
 
 `[string] $repository`: the full repository name in the form `org/repo`
 
 `[string] $type`: `"Issue"` or `"Pull Request"`
 
-`[string] $body`: The Issue or Pull Request body
+`[string] $author`: the Issue or Pull Request author login
+
+`[string] $title`: the Issue or Pull Request title
+
+`[string] $body`: the Issue or Pull Request body
+
+`[string] $createdAt`: the datetime the Issue or Pull Request created at
 
 `[bool] $closed`: if the Issue or Pull Request is closed
 
