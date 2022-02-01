@@ -114,7 +114,9 @@ The top level entity for a Project vNext which contains the Fields and Items
 
 `[ProjectItem[]] $items`: The `ProjectItem`s
 
-`[string] $title`: The title (aka name) or the `Project`
+`[string] $title`: The title (aka name) of the `Project`
+
+`[int] $number`: The number of the `Project`
 
 #### Methods
 
