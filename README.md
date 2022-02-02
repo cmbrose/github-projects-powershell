@@ -97,9 +97,9 @@ The configuration for a label in a repo. Multiple `ItemContent`s can reference t
 
 #### Methods
 
-`[Label] AddLabel([string]$name, [string]$color)` *: creates a new label with the given `name` and `color` (a hex color, e.g. `1d76db`) in the specified repository and returns the created `Label`. Will throw if a label with `name` already exists.
+`[Label]AddLabel([string]$name, [string]$color)` *: creates a new label with the given `name` and `color` (a hex color, e.g. `1d76db`) in the specified repository and returns the created `Label`. Will throw if a label with `name` already exists.
 
-`[void]DeleteLabel([string]$labelNameOrId` *: permanently deletes the label with the given `name` or GraphQL `id` from the repo.
+`[void]DeleteLabel([string]$labelNameOrId)` *: permanently deletes the label with the given `name` or GraphQL `id` from the repo.
 
 ## Projects
 
