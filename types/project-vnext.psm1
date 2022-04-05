@@ -465,7 +465,10 @@ function Is-IgnoredField {
     ($field.name -eq "Assignees") -or
     ($field.name -eq "Labels") -or
     ($field.name -eq "Repository") -or
-    ($field.name -eq "Milestone")
+    ($field.name -eq "Milestone") -or
+    ($field.name -eq "Linked Pull Requests") -or
+    ($field.name -eq "Reviewers") -or
+    ($field.name -eq "Tracks")
 }
 
 function Get-Project {
