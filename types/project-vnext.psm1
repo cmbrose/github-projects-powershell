@@ -360,53 +360,131 @@ function Get-ProjectItems {
         [GraphQLClient]$client
     )
 
-    begin {
-        $pageSize = 100
+    $pageSize = 100
 
-        $query = "
-            query (`$id: Int!, `$org: String!, `$cursor: String) {
-                organization(login: `$org) {
-                    projectNext(number: `$id) {
-                        items(first: $pageSize, after: `$cursor) {                
-                            edges {
-                                node {
-                                    $([ProjectItem]::FetchSubQuery)
-                                }
+    $query = "
+        query (`$id: Int!, `$org: String!, `$cursor: String) {
+            organization(login: `$org) {
+                projectNext(number: `$id) {
+                    items(first: $pageSize, after: `$cursor) {                
+                        edges {
+                            node {
+                                id
                             }
-                            pageInfo {
-                                endCursor
-                                hasNextPage
-                            }
+                        }
+                        pageInfo {
+                            endCursor
+                            hasNextPage
                         }
                     }
                 }
             }
-        "
-
-        $variables = @{
-            id = $projectNumber;
-            org = $org;
-            cursor = $null;
         }
-    }
-    process {
-        do {        
-            $result = $client.MakeRequest($query, $variables)
+    "
 
-            $result.organization.projectNext.items.edges.node | ForEach-Object {
-                if (-not $_.content) {
-                    # Probably a draft, nothing to see here
-                    return
+    $variables = @{
+        id = $projectNumber;
+        org = $org;
+        cursor = $null;
+    }
+
+    do {        
+        $result = $client.MakeRequest($query, $variables)
+
+        $itemIds = $result.organization.projectNext.items.edges.node.id
+
+        Get-ProjectItemsByIdBatch -ids $itemIds -client $client
+
+        $pageInfo = $result.organization.projectNext.items.pageInfo
+
+        $variables.cursor = $pageInfo.endCursor
+    } while ($pageInfo.hasNextPage)
+}
+
+# For performance, we load ProjectNextItems in batches. This causes issues with authorization
+# if the current token is allowed to access some issues, but not others - this can easily happen
+# if the project has items from multiple orgs. In that case we filter out the forbidden items
+# and just ignore them.
+function Get-ProjectItemsByIdBatch {
+    [CmdletBinding()]
+    [OutputType([ProjectField[]])]
+    param(
+        [string[]]$ids,
+        [GraphQLClient]$client
+    )
+
+    # Hashtable is important here because @{} is case-insensitive
+    # These are just inverse maps of each other
+    $idToNodeNameMap = New-Object system.collections.hashtable
+    $nodeNameToIdMap = New-Object system.collections.hashtable
+    foreach ($id in $ids) {
+        $idx = $ids.IndexOf($id)
+        $idToNodeNameMap[$id] = "n$idx"
+        $nodeNameToIdMap["n$idx"] = $id
+    }
+
+    function Get-BatchQuery {
+        param([string[]]$ids)
+
+        $subQueries = $ids | ForEach-Object {
+            # The subquery looks like `n0: node(id: "12345") { ... }`
+            "$($idToNodeNameMap[$_]): node(id: `"$_`") {
+                ... on ProjectNextItem {
+                    $([ProjectItem]::FetchSubQuery)
                 }
-
-                [ProjectItem]::new($_, $client)
-            }
-
-            $pageInfo = $result.organization.projectNext.items.pageInfo
-
-            $variables.cursor = $pageInfo.endCursor
-        } while ($pageInfo.hasNextPage)
+            }"
+        }
+    
+        "query {
+            $($subQueries -join "`n")
+        }"
     }
+
+    $query = Get-BatchQuery -ids $ids
+
+    try {
+        $result = $client.MakeRequest($query)
+    } catch {
+        $exception = $_.Exception
+    }
+
+    if ($exception) {
+        # On exception, find errors due to auth and remove those items.
+        # Note, if there are other errors the second query will fail
+        # with the same error and we will throw that one.
+
+        # The exception message is json like:
+        # [
+        #     {
+        #         "type": "FORBIDDEN",
+        #         "path": [
+        #             "bad-node-name",
+        #             "content"
+        #         ],
+        #         ...
+        #     },
+        # ]
+        $badNodes = $exception.Message 
+        | ConvertFrom-Json 
+        | Where-Object { $_.type -eq "FORBIDDEN" }
+        | ForEach-Object { $_.path[0] } # Index 0 is the node name
+        | ForEach-Object { $nodeNameToIdMap[$_] }
+
+        Write-Warning "Could not load node ids $($badNodes -join ", ")"
+
+        $ids = $ids | Where-Object { $badNodes -notcontains $_ }
+
+        $query = Get-BatchQuery -ids $ids
+
+        $result = $client.MakeRequest($query)
+    }
+
+    $ids 
+    | ForEach-Object { 
+        $item = $result.($idToNodeNameMap[$_])        
+        [ProjectItem]::new($item, $client)
+    }
+    | Where-Object { $_.content.type -ne "DraftIssue" }
 }
 
 function Get-ProjectFields {
