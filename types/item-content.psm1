@@ -272,7 +272,7 @@ class ItemContent: GraphQLObjectBase {
         $bodyText = $bodyText.Replace("`"", "\`"")
 
         $query = "
-            mutation (`$id: String!, `$body: String!) {
+            mutation (`$id: ID!, `$body: String!) {
                 addComment(input: {
                     subjectId: `$id,
                     body: `$body
