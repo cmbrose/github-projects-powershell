@@ -228,7 +228,7 @@ class ItemContent: GraphQLObjectBase {
 
         if ($this.type -eq "Issue") {
             $query = "
-                mutation (`$id: String!, `$body: String!) {
+                mutation (`$id: ID!, `$body: String!) {
                     updateIssue(
                         input: {
                             id: `$id,
@@ -243,7 +243,7 @@ class ItemContent: GraphQLObjectBase {
             "
         } else {
             $query = "
-                mutation (`$id: String!, `$body: String!) {
+                mutation (`$id: ID!, `$body: String!) {
                     updateIssue(
                         input: {
                             pullRequestId: `$id,
@@ -365,7 +365,7 @@ class Comment: GraphQLObjectBase {
 
         if ($this.Parent.Type -eq "Issue") {
             $query = "
-                mutation (`$id: String!, `$body: String!) {
+                mutation (`$id: ID!, `$body: String!) {
                     updateIssueComment(input: {
                         id: `$id,
                         body: `$body
@@ -376,7 +376,7 @@ class Comment: GraphQLObjectBase {
             "
         } else {
             $query = "
-                mutation (`$id: String!, `$body: String!) {
+                mutation (`$id: ID!, `$body: String!) {
                     updatePullRequestReviewComment(input: {
                         pullRequestReviewCommentId: `$id,
                         body: `$body
