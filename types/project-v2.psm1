@@ -154,7 +154,7 @@ class ProjectV2Item: GraphQLObjectBase {
             return $null
         }
 
-        $value = $this.fieldValues | Where-Object { $_.parent.id -eq $field.id }
+        $value = $this.fieldValues | Where-Object { $_.fieldId -eq $field.id }
 
         if (-not $value) {
             return $null
@@ -208,11 +208,10 @@ class ProjectV2Item: GraphQLObjectBase {
             throw $_
         }
 
-        if ($this.HasValueForField($fieldNameOrId)) {
-            $this.fieldValues | Where-Object { $_.fieldId -eq $field.id } | ForEach-Object { $_.value = $targetValue } 
-        } else {
-            $this.fieldValues += [ProjectV2FieldValue]::new($field, $value)
-        }
+        # Remove the value (if it exists)
+        $this.fieldValues = $this.fieldValues | Where-Object { $_.fieldId -ne $field.id }
+
+        $this.fieldValues += [ProjectV2FieldValue]::new($field, $value)
 
         return $true
     }
@@ -375,6 +374,7 @@ class ProjectV2FieldValue {
     ) {
         $this.fieldId = $queryResult.field.id
 
+        $this.id = $queryResult.id
         $this.value = $queryResult.value
         $this.name = $queryResult.name
     }
