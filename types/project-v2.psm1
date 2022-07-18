@@ -43,7 +43,7 @@ class ProjectV2: GraphQLObjectBase {
     ) {
         $query = "
             mutation {
-                deleteProjectNextItem(
+                deleteProjectV2Item(
                     input: {
                         projectId: `"$($this.id)`",
                         itemId: `"$($item.id)`"
@@ -69,7 +69,7 @@ class ProjectV2: GraphQLObjectBase {
     ) {
         $query = "
             mutation {
-                addProjectNextItem(
+                addProjectV2ItemById(
                     input: {
                         projectId: `"$($this.id)`", 
                         contentId: `"$($contentId)`"
