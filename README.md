@@ -162,7 +162,7 @@ A single field on the Project (a column on the table view). Single-select `Proje
 
 #### Methods
 
-`[string]GetFieldOption([string]$optionNameOrId, [bool]$enableNameLikeMatching=$false)` *: searches a single-select `ProjectField` for a `ProjectFieldOption` matching `$optionNameOrId`. If `$enableNameLikeMatching` is `$true` then `$optionNameOrId` can match `name` using `-like` syntax. If the `ProjectField` isn't single-select, returns `$null`
+`[string]GetFieldOption([string]$optionNameOrId, [bool]$enableNameLikeMatching=$false)`: searches a single-select `ProjectField` for a `ProjectFieldOption` matching `$optionNameOrId`. If `$enableNameLikeMatching` is `$true` then `$optionNameOrId` can match `name` using `-like` syntax. If the `ProjectField` isn't single-select, returns `$null`
 
 ### ProjectFieldOption
 A single option for a single-select `ProjectField`
