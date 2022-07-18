@@ -75,7 +75,7 @@ class ProjectV2: GraphQLObjectBase {
                         contentId: `"$($contentId)`"
                     }
                 ) {
-                    projectNextItem {
+                    item {
                         $([ProjectV2Item]::FetchSubQuery)
                     }
                 }
@@ -89,7 +89,7 @@ class ProjectV2: GraphQLObjectBase {
             throw $_
         }
 
-        $item = [ProjectV2Item]::new($result.addProjectNextItem.projectNextItem, $this.client)
+        $item = [ProjectV2Item]::new($result.addProjectV2ItemById.item, $this.client)
 
         # If the item already exists in the board the API just returns the same item with the same id
         # In this case, remove the item that already exists
@@ -455,7 +455,6 @@ function Get-ProjectItems {
     }
 
     do {        
-        Write-Verbose $query
         $result = $client.MakeRequest($query, $variables)
 
         $itemIds = $result.organization.projectV2.items.edges.node.id
@@ -510,7 +509,6 @@ function Get-ProjectItemsByIdBatch {
     $query = Get-BatchQuery -ids $ids
 
     try {
-        Write-Verbose $query
         $result = $client.MakeRequest($query)
     } catch {
         $exception = $_.Exception
