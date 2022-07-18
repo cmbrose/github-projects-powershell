@@ -5,6 +5,8 @@ Utility scripts and classes for working with GitHub projects. Specifically suppo
 
 > A note on naming: it's a bit confusing to specify "Project" and "Project vNext" to denote "old" and "new" project types. So instead "old" projects are called "Boards" and "new" projects are "Projects".
 
+:warning: the ProjectNext APIs are now deprecated. The module is left intact for backwards compatibility, but usage should migrate to the ProjectV2 API in `project-v2.psm1`. The `Project` interface and all related types are unchanged in the new version.
+
 ## Common Types
 
 ### ItemContent
@@ -162,7 +164,7 @@ A single field on the Project (a column on the table view). Single-select `Proje
 
 #### Methods
 
-`[string]GetFieldOption([string]$optionNameOrId, [bool]$enableNameLikeMatching=$false)` *: searches a single-select `ProjectField` for a `ProjectFieldOption` matching `$optionNameOrId`. If `$enableNameLikeMatching` is `$true` then `$optionNameOrId` can match `name` using `-like` syntax. If the `ProjectField` isn't single-select, returns `$null`
+`[string]GetFieldOption([string]$optionNameOrId, [bool]$enableNameLikeMatching=$false)`: searches a single-select `ProjectField` for a `ProjectFieldOption` matching `$optionNameOrId`. If `$enableNameLikeMatching` is `$true` then `$optionNameOrId` can match `name` using `-like` syntax. If the `ProjectField` isn't single-select, returns `$null`
 
 ### ProjectFieldOption
 A single option for a single-select `ProjectField`
