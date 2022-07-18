@@ -379,26 +379,39 @@ class ProjectV2FieldValue {
         $this.name = $queryResult.name
     }
 
+    # Note: this must come before FetchSubQuery or it will be evaluated as an empty string
+    static [string]$CommonQueryProperties = "
+        field {
+            ... on ProjectV2Field {
+                id
+            }
+            ... on ProjectV2IterationField {
+                id
+            }
+            ... on ProjectV2SingleSelectField {
+                id
+            }
+        }
+        id
+    "
+
     # There are a lot more types, but not needed so far :)
     static [string]$FetchSubQuery = "
-        field {
-            id
-        }
         ... on ProjectV2ItemFieldDateValue {
-            id
+            $([ProjectV2FieldValue]::CommonQueryProperties)
             value: date
         }
         ... on ProjectV2ItemFieldNumberValue {
-            id
+            $([ProjectV2FieldValue]::CommonQueryProperties)
             value: number
         }
         ... on ProjectV2ItemFieldSingleSelectValue {
-            id
+            $([ProjectV2FieldValue]::CommonQueryProperties)
             value: optionId
             name
         }
         ... on ProjectV2ItemFieldTextValue {
-            id
+            $([ProjectV2FieldValue]::CommonQueryProperties)
             value: text 
         }
     "
@@ -422,7 +435,7 @@ function Get-ProjectItems {
                     items(first: $pageSize, after: `$cursor) {                
                         edges {
                             node {
-                                id: databaseId 
+                                id 
                             }
                         }
                         pageInfo {
