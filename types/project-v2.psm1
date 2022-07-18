@@ -3,10 +3,10 @@ using module "./item-content.psm1"
 using module "../common/client.psm1"
 . (Join-Path $PSScriptRoot .. common constants.ps1)
 
-class ProjectV2: GraphQLObjectBase {
-    [ProjectV2Field[]]$Fields
+class Project: GraphQLObjectBase {
+    [ProjectField[]]$Fields
 
-    [ProjectV2Item[]]$Items
+    [ProjectItem[]]$Items
 
     [string]$Title
 
@@ -14,12 +14,12 @@ class ProjectV2: GraphQLObjectBase {
 
     hidden [GraphQLClient]$client
 
-    ProjectV2(
+    Project(
         [string]$id,
         [string]$title,
         [int]$number,
-        [ProjectV2Field[]]$fields,
-        [ProjectV2Item[]]$items,
+        [ProjectField[]]$fields,
+        [ProjectItem[]]$items,
         [GraphQLClient]$client
     ) {
         $this.id = $id
@@ -30,7 +30,7 @@ class ProjectV2: GraphQLObjectBase {
         $this.client = $client
     }
 
-    [ProjectV2Field]GetField(
+    [ProjectField]GetField(
         [string]$fieldNameOrId
     ) {
         return $this.fields 
@@ -39,7 +39,7 @@ class ProjectV2: GraphQLObjectBase {
     }
 
     [void]RemoveItem(
-        [ProjectV2Item]$item
+        [ProjectItem]$item
     ) {
         $query = "
             mutation {
@@ -64,7 +64,7 @@ class ProjectV2: GraphQLObjectBase {
         $this.items = $this.items | Where-Object { $_.id -ne $item.id }
     }
 
-    [ProjectV2Item]AddItemByContentId(
+    [ProjectItem]AddItemByContentId(
         [string]$contentId
     ) {
         $query = "
@@ -76,7 +76,7 @@ class ProjectV2: GraphQLObjectBase {
                     }
                 ) {
                     item {
-                        $([ProjectV2Item]::FetchSubQuery)
+                        $([ProjectItem]::FetchSubQuery)
                     }
                 }
             }
@@ -89,7 +89,7 @@ class ProjectV2: GraphQLObjectBase {
             throw $_
         }
 
-        $item = [ProjectV2Item]::new($result.addProjectV2ItemById.item, $this.client)
+        $item = [ProjectItem]::new($result.addProjectV2ItemById.item, $this.client)
 
         # If the item already exists in the board the API just returns the same item with the same id
         # In this case, remove the item that already exists
@@ -102,18 +102,18 @@ class ProjectV2: GraphQLObjectBase {
     }
 }
 
-class ProjectV2Item: GraphQLObjectBase {
+class ProjectItem: GraphQLObjectBase {
     # The Issue/PR this corresponds to
     [ItemContent]$Content
 
-    [ProjectV2FieldValue[]]$FieldValues
+    [ProjectFieldValue[]]$FieldValues
 
-    hidden [ProjectV2]$Parent
+    hidden [Project]$Parent
 
     hidden [GraphQLClient]$Client
 
     # Constructor from value returned by $FetchSubQuery
-    ProjectV2Item(
+    ProjectItem(
         $queryResult,
         [GraphQLClient]$client
     ) {
@@ -121,7 +121,7 @@ class ProjectV2Item: GraphQLObjectBase {
         $this.content = [ItemContent]::new($queryResult.content, $client)
 
         $this.fieldValues = $queryResult.fieldValues.edges.node | ForEach-Object {
-            $fieldValue = [ProjectV2FieldValue]::new($_)
+            $fieldValue = [ProjectFieldValue]::new($_)
 
             # Only populate handled types
             if ($fieldValue.Id) {
@@ -133,7 +133,7 @@ class ProjectV2Item: GraphQLObjectBase {
     }
 
     [void]SetParent(
-        [ProjectV2]$parent
+        [Project]$parent
     ) {
         $this.parent = $parent
     }
@@ -211,7 +211,7 @@ class ProjectV2Item: GraphQLObjectBase {
         # Remove the value (if it exists)
         $this.fieldValues = $this.fieldValues | Where-Object { $_.fieldId -ne $field.id }
 
-        $this.fieldValues += [ProjectV2FieldValue]::new($field, $value)
+        $this.fieldValues += [ProjectFieldValue]::new($field, $value)
 
         return $true
     }
@@ -221,7 +221,7 @@ class ProjectV2Item: GraphQLObjectBase {
         fieldValues(first: $global:maxSupportedProjectFields) {
             edges {
                 node {
-                    $([ProjectV2FieldValue]::FetchSubQuery)
+                    $([ProjectFieldValue]::FetchSubQuery)
                 }
             }
         }
@@ -231,16 +231,16 @@ class ProjectV2Item: GraphQLObjectBase {
     "
 }
 
-class ProjectV2Field: GraphQLObjectBase {
+class ProjectField: GraphQLObjectBase {
     [string]$Name
 
     [string]$DataType
     [string]$Type
 
-    [ProjectV2FieldOption[]]$Options
+    [ProjectFieldOption[]]$Options
 
     # Constructor from value returned by $FetchSubQuery
-    ProjectV2Field($queryResult) {
+    ProjectField($queryResult) {
         $this.id = $queryResult.id
         $this.name = $queryResult.name
         $this.datatype = $queryResult.datatype
@@ -248,18 +248,18 @@ class ProjectV2Field: GraphQLObjectBase {
 
         if ($queryResult.options) {
             $this.options = $queryResult.options | ForEach-Object {
-                [ProjectV2FieldOption]::new($_.id, $_.name)
+                [ProjectFieldOption]::new($_.id, $_.name)
             }
         }
     }
 
-    [ProjectV2FieldOption]GetFieldOption(
+    [ProjectFieldOption]GetFieldOption(
         [string]$optionNameOrId
     ) {
         return $this.GetFieldOption($optionNameOrId, $false)
     }
 
-    [ProjectV2FieldOption]GetFieldOption(
+    [ProjectFieldOption]GetFieldOption(
         [string]$optionNameOrId,
         [bool]$enableNameLikeMatching
     ) {
@@ -316,13 +316,13 @@ class ProjectV2Field: GraphQLObjectBase {
     static [string]$FetchSubQuery = "
         __typename
         ... on ProjectV2Field {
-            $([ProjectV2Field]::CommonQueryProperties)
+            $([ProjectField]::CommonQueryProperties)
         }
         ... on ProjectV2IterationField {
-            $([ProjectV2Field]::CommonQueryProperties)
+            $([ProjectField]::CommonQueryProperties)
         }
         ... on ProjectV2SingleSelectField {
-            $([ProjectV2Field]::CommonQueryProperties)
+            $([ProjectField]::CommonQueryProperties)
             options {
                 id 
                 name
@@ -331,10 +331,10 @@ class ProjectV2Field: GraphQLObjectBase {
     "
 }
 
-class ProjectV2FieldOption: GraphQLObjectBase {
+class ProjectFieldOption: GraphQLObjectBase {
     [string]$Name
 
-    ProjectV2FieldOption(
+    ProjectFieldOption(
         [string]$id,
         [string]$name
     ) {
@@ -343,7 +343,7 @@ class ProjectV2FieldOption: GraphQLObjectBase {
     }
 }
 
-class ProjectV2FieldValue {
+class ProjectFieldValue {
     # Check this field on the queryResult constructor to see if the subtype is handled or not
     [string]$Id
 
@@ -354,8 +354,8 @@ class ProjectV2FieldValue {
     # For single-select, this is the friendly name of the value
     [string]$Name
 
-    ProjectV2FieldValue(
-        [ProjectV2Field]$parent,
+    ProjectFieldValue(
+        [ProjectField]$parent,
         [string]$value
     ) {
         $this.fieldId = $parent.id
@@ -369,7 +369,7 @@ class ProjectV2FieldValue {
         }
     }
 
-    ProjectV2FieldValue(
+    ProjectFieldValue(
         $queryResult
     ) {
         $this.fieldId = $queryResult.field.id
@@ -398,20 +398,20 @@ class ProjectV2FieldValue {
     # There are a lot more types, but not needed so far :)
     static [string]$FetchSubQuery = "
         ... on ProjectV2ItemFieldDateValue {
-            $([ProjectV2FieldValue]::CommonQueryProperties)
+            $([ProjectFieldValue]::CommonQueryProperties)
             value: date
         }
         ... on ProjectV2ItemFieldNumberValue {
-            $([ProjectV2FieldValue]::CommonQueryProperties)
+            $([ProjectFieldValue]::CommonQueryProperties)
             value: number
         }
         ... on ProjectV2ItemFieldSingleSelectValue {
-            $([ProjectV2FieldValue]::CommonQueryProperties)
+            $([ProjectFieldValue]::CommonQueryProperties)
             value: optionId
             name
         }
         ... on ProjectV2ItemFieldTextValue {
-            $([ProjectV2FieldValue]::CommonQueryProperties)
+            $([ProjectFieldValue]::CommonQueryProperties)
             value: text 
         }
     "
@@ -419,7 +419,7 @@ class ProjectV2FieldValue {
 
 function Get-ProjectItems {
     [CmdletBinding()]
-    [OutputType([ProjectV2Item[]])]
+    [OutputType([ProjectItem[]])]
     param(
         [string]$org,
         [int]$projectNumber,
@@ -467,13 +467,13 @@ function Get-ProjectItems {
     } while ($pageInfo.hasNextPage)
 }
 
-# For performance, we load ProjectV2Items in batches. This causes issues with authorization
+# For performance, we load ProjectItems in batches. This causes issues with authorization
 # if the current token is allowed to access some issues, but not others - this can easily happen
 # if the project has items from multiple orgs. In that case we filter out the forbidden items
 # and just ignore them.
 function Get-ProjectItemsByIdBatch {
     [CmdletBinding()]
-    [OutputType([ProjectV2Item[]])]
+    [OutputType([ProjectItem[]])]
     param(
         [string[]]$ids,
         [GraphQLClient]$client
@@ -496,7 +496,7 @@ function Get-ProjectItemsByIdBatch {
             # The subquery looks like `n0: node(id: "12345") { ... }`
             "$($idToNodeNameMap[$_]): node(id: `"$_`") {
                 ... on ProjectV2Item {
-                    $([ProjectV2Item]::FetchSubQuery)
+                    $([ProjectItem]::FetchSubQuery)
                 }
             }"
         }
@@ -548,14 +548,14 @@ function Get-ProjectItemsByIdBatch {
     $ids 
     | ForEach-Object { 
         $item = $result.($idToNodeNameMap[$_])        
-        [ProjectV2Item]::new($item, $client)
+        [ProjectItem]::new($item, $client)
     }
     | Where-Object { $_.content.type -ne "DraftIssue" }
 }
 
 function Get-ProjectFields {
     [CmdletBinding()]
-    [OutputType([ProjectV2Field[]])]
+    [OutputType([ProjectField[]])]
     param(
         [string]$org,
         [int]$projectNumber,
@@ -569,7 +569,7 @@ function Get-ProjectFields {
                     fields(first: $global:maxSupportedProjectFields) {
                         edges {
                             node {
-                                $([ProjectV2Field]::FetchSubQuery)
+                                $([ProjectField]::FetchSubQuery)
                             }
                         }
                         pageInfo {
@@ -593,7 +593,7 @@ function Get-ProjectFields {
     }
 
     $result.organization.projectV2.fields.edges.node 
-    | ForEach-Object { [ProjectV2Field]::new($_) }
+    | ForEach-Object { [ProjectField]::new($_) }
     | Where-Object { -not (Is-IgnoredField $_) }
 }
 
@@ -601,7 +601,7 @@ function Is-IgnoredField {
     [CmdletBinding()]
     [OutputType([bool])]
     param(
-        [ProjectV2Field]$field
+        [ProjectField]$field
     )
 
     # These are all set on the content itself and not returned by GraphQL for fieldValues
@@ -617,7 +617,7 @@ function Is-IgnoredField {
 
 function Get-Project {
     [CmdletBinding()]
-    [OutputType([ProjectV2])]
+    [OutputType([Project])]
     param(
         [string]$org,
         [int]$projectNumber,
@@ -651,7 +651,7 @@ function Get-Project {
 
     $result = $client.MakeRequest($query, $variables)
 
-    $project = [ProjectV2]::new(
+    $project = [Project]::new(
         $result.organization.projectV2.id,
         $result.organization.projectV2.title,
         $result.organization.projectV2.number,
