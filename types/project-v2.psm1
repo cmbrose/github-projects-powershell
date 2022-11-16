@@ -515,6 +515,8 @@ function Get-ProjectItemsByIdBatch {
     }
 
     if ($exception) {
+        Write-Verbose "Caught exception fetching project items: " + $exception.Message
+    
         # On exception, find errors due to auth and remove those items.
         # Note, if there are other errors the second query will fail
         # with the same error and we will throw that one.
