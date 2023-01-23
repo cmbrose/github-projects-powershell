@@ -301,3 +301,4 @@ You need to generate a GitHub personal access token in order to use this library
 
 1. Visit https://github.com/settings/tokens
 2. Generate a new token (classic) with the following scopes: `admin:org`, `project`, and `repo`
+3. If you're accessing an organization's projects, Configure SSO for the new token
