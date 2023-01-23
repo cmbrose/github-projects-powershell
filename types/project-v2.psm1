@@ -155,12 +155,12 @@ class ProjectItem: GraphQLObjectBase {
         }
 
         $value = $this.fieldValues | Where-Object { $_.fieldId -eq $field.id }
-
         if (-not $value) {
             return $null
         }
 
-        return $value.name ?? $value.value
+        $result = if ($value.name) { $value.name } else { $value.value }
+        return $result
     }
 
     [bool]TrySetFieldValue(
