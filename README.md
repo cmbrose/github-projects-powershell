@@ -294,3 +294,11 @@ $board.AddContentToColumn($card.content.id, "To do")
 # Add note to the board (throws if already on the board)
 $board.AddNoteToColumn("my note", "Notes")
 ```
+
+# Access Token
+
+You need to generate a GitHub personal access token in order to use this library. Follow these steps to create a new access token with the necessary scopes:
+
+1. Visit https://github.com/settings/tokens
+2. Generate a new token (classic) with the following scopes: `admin:org`, `project`, and `repo`
+3. If you're accessing an organization's projects, Configure SSO for the new token
