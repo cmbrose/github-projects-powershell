@@ -219,13 +219,6 @@ class ProjectItem: GraphQLObjectBase {
     [bool]TryClearFieldValue(
         [string]$fieldNameOrId
     ) {
-        return $this.TryClearFieldValue($fieldNameOrId, $false)
-    }
-    
-    [bool]TryClearFieldValue(
-        [string]$fieldNameOrId,
-        [bool]$enableOptionLikeMatching
-    ) {
         $field = $this.parent.GetField($fieldNameOrId)
         if (-not $field) {
             return $false
