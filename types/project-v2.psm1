@@ -215,6 +215,44 @@ class ProjectItem: GraphQLObjectBase {
 
         return $true
     }
+    
+    [bool]TryClearFieldValue(
+        [string]$fieldNameOrId,
+        [bool]$enableOptionLikeMatching
+    ) {
+        $field = $this.parent.GetField($fieldNameOrId)
+        if (-not $field) {
+            return $false
+        }
+        
+        $query = "
+            mutation {
+                clearProjectV2ItemFieldValue(
+                    input: {
+                        projectId: `"$($this.parent.id)`"
+                        itemId: `"$($this.id)`"
+                        fieldId: `"$($field.id)`"
+                    }
+                ) {
+                    projectV2Item {
+                        id
+                    }
+                }
+            }
+        "
+
+        try {
+            $_ = $this.client.MakeRequest($query)
+        } catch [Exception] {
+            Write-Error "Failed to clear field value for item $($this.id)"
+            throw $_
+        }
+
+        # Remove the value (if it exists)
+        $this.fieldValues = $this.fieldValues | Where-Object { $_.fieldId -ne $field.id }
+
+        return $true
+    }
 
     static [string]$FetchSubQuery = "
         id
