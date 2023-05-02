@@ -149,7 +149,9 @@ A single item (row/card) in a `Project`. It contains a single `ItemContent` whic
 
 `[string]GetFieldValue([string]$fieldNameOrId)`: returns the value for the specified `ProjectField` or `$null` if not set.
 
-`[bool]TrySetFieldValue([string]$fieldNameOrId, [string]$value, [bool]$enableOptionLikeMatching=$false)` *: sets the value for the specified `ProjectField` to `$value`, overridding if already set. If the `ProjectField` is single-value then `$value` can be the option `name` or `id`. If `$enableOptionLikeMatching` is `$true` and the `ProjectField` is single-select then `$value` can match `name` using `-like` syntax.
+`[bool]TrySetFieldValue([string]$fieldNameOrId, [string]$value, [bool]$enableOptionLikeMatching=$false)` *: sets the value for the specified `ProjectField` to `$value`, overridding if already set. If the `ProjectField` is single-value then `$value` can be the option `name` or `id`. If `$enableOptionLikeMatching` is `$true` and the `ProjectField` is single-select then `$value` can match `name` using `-like` syntax. Note that some column types (e.g. `Date` columns) cannot be set to empty string - in this case use `TryClearFieldValue` instead.
+
+`[bool]TryClearFieldValue([string]$fieldNameOrId)` *: clears the value for the specified `ProjectField`.
 
 ### ProjectField
 A single field on the Project (a column on the table view). Single-select `ProjectField`s with have an `options` property containing a list of `ProjectFieldOption`s which give the names of the possible values of the `ProjectField`.
