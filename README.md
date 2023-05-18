@@ -149,7 +149,7 @@ A single item (row/card) in a `Project`. It contains a single `ItemContent` whic
 
 `[string]GetFieldValue([string]$fieldNameOrId)`: returns the value for the specified `ProjectField` or `$null` if not set.
 
-`[bool]TrySetFieldValue([string]$fieldNameOrId, [string]$value, [bool]$enableOptionLikeMatching=$false)` *: sets the value for the specified `ProjectField` to `$value`, overridding if already set. If the `ProjectField` is single-value then `$value` can be the option `name` or `id`. If `$enableOptionLikeMatching` is `$true` and the `ProjectField` is single-select then `$value` can match `name` using `-like` syntax. Note that some column types (e.g. `Date` columns) cannot be set to empty string - in this case use `TryClearFieldValue` instead.
+`[bool]TrySetFieldValue([string]$fieldNameOrId, [string]$value, [bool]$ignoreOptionNonAscii=$false)` *: sets the value for the specified `ProjectField` to `$value`, overridding if already set. If the `ProjectField` is single-value then `$value` can be the option `name` or `id`. If `$ignoreOptionNonAscii` is `$true` and the `ProjectField` is single-select then `$value` can match `name` ignoring non-ascii characters (useful when using emojis). Note that some column types (e.g. `Date` columns) cannot be set to empty string - in this case use `TryClearFieldValue` instead.
 
 `[bool]TryClearFieldValue([string]$fieldNameOrId)` *: clears the value for the specified `ProjectField`.
 
@@ -166,7 +166,7 @@ A single field on the Project (a column on the table view). Single-select `Proje
 
 #### Methods
 
-`[string]GetFieldOption([string]$optionNameOrId, [bool]$enableNameLikeMatching=$false)`: searches a single-select `ProjectField` for a `ProjectFieldOption` matching `$optionNameOrId`. If `$enableNameLikeMatching` is `$true` then `$optionNameOrId` can match `name` using `-like` syntax. If the `ProjectField` isn't single-select, returns `$null`
+`[string]GetFieldOption([string]$optionNameOrId, [bool]$ignoreNonAscii=$false)`: searches a single-select `ProjectField` for a `ProjectFieldOption` matching `$optionNameOrId`. If `$ignoreNonAscii` is `$true` then `$optionNameOrId` can match `name` ignoring non-ascii characters (useful when using emojis). If the `ProjectField` isn't single-select, returns `$null`
 
 ### ProjectFieldOption
 A single option for a single-select `ProjectField`

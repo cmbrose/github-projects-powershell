@@ -56,7 +56,8 @@ class Project: GraphQLObjectBase {
 
         try {
             $result = $this.client.MakeRequest($query)
-        } catch [Exception] {
+        }
+        catch [Exception] {
             Write-Error "Failed to delete item '$($item.id)' from project"
             throw $_
         }
@@ -84,7 +85,8 @@ class Project: GraphQLObjectBase {
 
         try {
             $result = $this.client.MakeRequest($query)
-        } catch [Exception] {
+        }
+        catch [Exception] {
             Write-Error "Failed to add content '$contentId' to project"
             throw $_
         }
@@ -172,10 +174,12 @@ class ProjectItem: GraphQLObjectBase {
             $option = $field.GetFieldOption($value.value)
             if (-not $option) {
                 return $null
-            } else {
+            }
+            else {
                 return $option.name
             }
-        } else {
+        }
+        else {
             return $value.value
         }
     }
@@ -190,7 +194,7 @@ class ProjectItem: GraphQLObjectBase {
     [bool]TrySetFieldValue(
         [string]$fieldNameOrId,
         [string]$value, # NameOrId if option,
-        [bool]$enableOptionLikeMatching
+        [bool]$ignoreOptionNonAscii
     ) {
         $field = $this.parent.GetField($fieldNameOrId)
         if (-not $field) {
@@ -199,14 +203,16 @@ class ProjectItem: GraphQLObjectBase {
 
         if (-not $value) {
             $targetValue = ""
-        } elseif ($field.options) {
-            $option = $field.GetFieldOption($value, $enableOptionLikeMatching)
+        }
+        elseif ($field.options) {
+            $option = $field.GetFieldOption($value, $ignoreOptionNonAscii)
             if (-not $option) {
                 return $false
             }
 
             $targetValue = $option.id
-        } else {
+        }
+        else {
             $targetValue = $value
         }
 
@@ -233,14 +239,16 @@ class ProjectItem: GraphQLObjectBase {
 
         try {
             $_ = $this.client.MakeRequest($query, $variables)
-        } catch [Exception] {
+        }
+        catch [Exception] {
             Write-Error "Failed to set field value for item $($this.id)"
             throw $_
         }
 
         if ($this.HasValueForField($fieldNameOrId)) {
             $this.fieldValues | Where-Object { $_.fieldId -eq $field.id } | ForEach-Object { $_.value = $targetValue } 
-        } else {
+        }
+        else {
             $this.fieldValues += [ProjectFieldValue]::new($field.id, $targetValue)
         }
 
@@ -273,7 +281,7 @@ class ProjectField: GraphQLObjectBase {
     ProjectField(
         [string]$id,
         [string]$name,
-        [ProjectFieldOption[]]$options=$null
+        [ProjectFieldOption[]]$options = $null
     ) {
         $this.id = $id
         $this.name = $name
@@ -304,7 +312,7 @@ class ProjectField: GraphQLObjectBase {
 
     [ProjectFieldOption]GetFieldOption(
         [string]$optionNameOrId,
-        [bool]$enableNameLikeMatching
+        [bool]$ignoreNonAscii
     ) {
         if (-not $this.options) {
             return $null
@@ -313,7 +321,7 @@ class ProjectField: GraphQLObjectBase {
         return $this.options 
         | Where-Object { 
             ($_.name -eq $optionNameOrId) -or
-            ($enableNameLikeMatching -and ($_.name -like "*$optionNameOrId*")) -or
+            ($ignoreOptionNonAscii -and (($_.name -creplace "\P{IsBasicLatin}").Trim() -eq $optionNameOrId)) -or
             ($_.id -eq $optionNameOrId)
         } | Select-Object -First 1
     }
@@ -383,8 +391,8 @@ function Get-ProjectItems {
     "
 
     $variables = @{
-        id = $projectNumber;
-        org = $org;
+        id     = $projectNumber;
+        org    = $org;
         cursor = $null;
     }
 
@@ -444,7 +452,8 @@ function Get-ProjectItemsByIdBatch {
 
     try {
         $result = $client.MakeRequest($query)
-    } catch {
+    }
+    catch {
         $exception = $_.Exception
     }
 
@@ -516,7 +525,7 @@ function Get-ProjectFields {
     "
 
     $variables = @{
-        id = $projectNumber;
+        id  = $projectNumber;
         org = $org;
     }
 
@@ -575,7 +584,7 @@ function Get-Project {
     "
 
     $variables = @{
-        id = $projectNumber;
+        id  = $projectNumber;
         org = $org;
     }
 
@@ -630,7 +639,7 @@ function Get-AllProjectNumbers {
 
     $variables = @{
         cursor = $null;
-        org = $org;
+        org    = $org;
     }
 
     if (-not $client) {
