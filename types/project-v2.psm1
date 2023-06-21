@@ -581,6 +581,7 @@ function Get-ProjectItemsByIdBatch {
         | ForEach-Object { $_.path[0] } # Index 0 is the node name
         | ForEach-Object { $nodeNameToIdMap[$_] }
 
+        Write-Warning $exception.Message
         Write-Warning "Could not load node ids $($badNodes -join ", ")"
 
         $ids = $ids | Where-Object { $badNodes -notcontains $_ }
