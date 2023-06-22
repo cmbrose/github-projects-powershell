@@ -589,12 +589,16 @@ function Get-ProjectItemsByIdBatch {
 
         # $result = $client.MakeRequest($query)
 
-        $result = ${}
+        $result = @{}
         $ids 
         | ForEach-Object { 
              $query = Get-BatchQuery -ids @($_)
-             $subResult = $client.MakeRequest($query)
-             $result.($idToNodeNameMap[$_]) = $subResult.($idToNodeNameMap[$_])
+             try {
+                 $subResult = $client.MakeRequest($query)
+                 $result.($idToNodeNameMap[$_]) = $subResult.($idToNodeNameMap[$_])
+             } catch {
+                 # Ignore it
+             }
         }
     }
 
