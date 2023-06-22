@@ -575,19 +575,27 @@ function Get-ProjectItemsByIdBatch {
         #         ...
         #     },
         # ]
-        $badNodes = $exception.Message 
-        | ConvertFrom-Json 
-        | Where-Object { $_.type -eq "FORBIDDEN" }
-        | ForEach-Object { $_.path[0] } # Index 0 is the node name
-        | ForEach-Object { $nodeNameToIdMap[$_] }
+        # $badNodes = $exception.Message 
+        # | ConvertFrom-Json 
+        # | Where-Object { $_.type -eq "FORBIDDEN" }
+        # | ForEach-Object { $_.path[0] } # Index 0 is the node name
+        # | ForEach-Object { $nodeNameToIdMap[$_] }
 
-        Write-Warning "Could not load node ids $($badNodes -join ", ")"
+        # Write-Warning "Could not load node ids $($badNodes -join ", ")"
 
-        $ids = $ids | Where-Object { $badNodes -notcontains $_ }
+        # $ids = $ids | Where-Object { $badNodes -notcontains $_ }
 
-        $query = Get-BatchQuery -ids $ids
+        # $query = Get-BatchQuery -ids $ids
 
-        $result = $client.MakeRequest($query)
+        # $result = $client.MakeRequest($query)
+
+        $result = ${}
+        $ids 
+        | ForEach-Object { 
+             $query = Get-BatchQuery -ids @($_)
+             $subResult = $client.MakeRequest($query)
+             $result.($idToNodeNameMap[$_]) = $subResult.($idToNodeNameMap[$_])
+        }
     }
 
     $ids 
