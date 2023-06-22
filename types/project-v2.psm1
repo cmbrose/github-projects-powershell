@@ -559,47 +559,25 @@ function Get-ProjectItemsByIdBatch {
         $exception = $_.Exception
     }
 
-    if ($exception) {  
-        # On exception, find errors due to auth and remove those items.
-        # Note, if there are other errors the second query will fail
-        # with the same error and we will throw that one.
-
-        # The exception message is json like:
-        # [
-        #     {
-        #         "type": "FORBIDDEN",
-        #         "path": [
-        #             "bad-node-name",
-        #             "content"
-        #         ],
-        #         ...
-        #     },
-        # ]
-        # $badNodes = $exception.Message 
-        # | ConvertFrom-Json 
-        # | Where-Object { $_.type -eq "FORBIDDEN" }
-        # | ForEach-Object { $_.path[0] } # Index 0 is the node name
-        # | ForEach-Object { $nodeNameToIdMap[$_] }
-
-        # Write-Warning "Could not load node ids $($badNodes -join ", ")"
-
-        # $ids = $ids | Where-Object { $badNodes -notcontains $_ }
-
-        # $query = Get-BatchQuery -ids $ids
-
-        # $result = $client.MakeRequest($query)
-
+    if ($exception) {
+        Write-Warning "Failed to load batch of items, fetching individually instead"
+        
+        $badIds = @()
         $result = @{}
+        
         $ids 
         | ForEach-Object { 
-             $query = Get-BatchQuery -ids @($_)
-             try {
-                 $subResult = $client.MakeRequest($query)
-                 $result.($idToNodeNameMap[$_]) = $subResult.($idToNodeNameMap[$_])
-             } catch {
-                 # Ignore it
-             }
+            $id = $_
+            $query = Get-BatchQuery -ids @($id)
+            try {
+                $subResult = $client.MakeRequest($query)
+                $result.($idToNodeNameMap[$_]) = $subResult.($idToNodeNameMap[$_])
+            } catch {
+                $badIds += $id
+            }
         }
+
+        Write-Warning "Could not load node ids $($badIds -join ", ")"
     }
 
     $ids 
