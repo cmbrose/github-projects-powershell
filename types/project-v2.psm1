@@ -207,7 +207,7 @@ class ProjectItem: GraphQLObjectBase {
             $_ = $this.client.MakeRequest($query)
         }
         catch [Exception] {
-            Write-Error "Failed to set field value for item $($this.id): $($_.Message)"
+            Write-Error "Failed to set field value for item $($this.id): $($_.Exception.Message)"
             return $false
         }
 
