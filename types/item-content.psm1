@@ -7,7 +7,7 @@ class ItemContent: GraphQLObjectBase {
     # The Id number of the item. Note this is NOT the same as Id
     [int]$Number
 
-    # The repository the item belongs to in the form <organization>/<repository>
+    # The repository the item belongs to in the form <owner>/<repository>
     [string]$Repository
 
     # "Issue" or "PullRequest"
@@ -76,7 +76,8 @@ class ItemContent: GraphQLObjectBase {
 
         if ($queryResult.labels.edges.node) {
             $this.labels = $queryResult.labels.edges.node | ForEach-Object { [Label]::new($_) }
-        } else {
+        }
+        else {
             $this.labels = @()
         }
 
@@ -99,7 +100,8 @@ class ItemContent: GraphQLObjectBase {
                     }
               }
             "
-        } else {
+        }
+        else {
             $query = "
                 mutation {
                     closePullRequest(
@@ -178,8 +180,8 @@ class ItemContent: GraphQLObjectBase {
         "
 
         $query = "
-            query (`$id: Int!, `$org: String!, `$repositoryName: String!, `$cursor: String) {
-                repository(name: `$repositoryName, owner: `$org) {
+            query (`$id: Int!, `$owner: String!, `$repositoryName: String!, `$cursor: String) {
+                repository(name: `$repositoryName, owner: `$owner) {
                     issueOrPullRequest(number: `$id) {
                         ... on Issue {
                             $commentSubquery
@@ -192,12 +194,12 @@ class ItemContent: GraphQLObjectBase {
             }
         "
 
-        $org, $repositoryName = $this.Repository.Split('/')
+        $owner, $repositoryName = $this.Repository.Split('/')
 
         $variables = @{
             repositoryName = $repositoryName;
-            org = $org;
-            id = $this.Number
+            owner          = $owner;
+            id             = $this.Number
         }
 
         $this.Comments = @()
@@ -241,7 +243,8 @@ class ItemContent: GraphQLObjectBase {
                     }
                 }
             "
-        } else {
+        }
+        else {
             $query = "
                 mutation (`$id: ID!, `$body: String!) {
                     updateIssue(
@@ -259,7 +262,7 @@ class ItemContent: GraphQLObjectBase {
         }
 
         $variables = @{
-            id = $this.Id;
+            id   = $this.Id;
             body = $newBody;
         }
 
@@ -287,7 +290,7 @@ class ItemContent: GraphQLObjectBase {
         "
 
         $variables = @{
-            id = $this.Id;
+            id   = $this.Id;
             body = $bodyText;
         }
 
@@ -374,7 +377,8 @@ class Comment: GraphQLObjectBase {
                     }
                 }
             "
-        } else {
+        }
+        else {
             $query = "
                 mutation (`$id: ID!, `$body: String!) {
                     updatePullRequestReviewComment(input: {
@@ -387,8 +391,8 @@ class Comment: GraphQLObjectBase {
             "
         }
 
-         $variables = @{
-            id = $this.Id;
+        $variables = @{
+            id   = $this.Id;
             body = $newBody;
         }
 
@@ -411,7 +415,7 @@ function Get-ItemContent {
     [CmdletBinding()]
     [OutputType([ItemContent])]
     param(
-        [string]$org,
+        [string]$owner,
         [string]$repositoryName,
         [int]$number,
         [switch]$fetchComments,
@@ -422,9 +426,9 @@ function Get-ItemContent {
     )
 
     $query = "
-        query (`$id: Int!, `$org: String!, `$repositoryName: String!) {
-            repository(name: `$repositoryName, owner: `$org) {
-                issueOrPullRequest(number: `$id) {
+        query (`$number: Int!, `$owner: String!, `$repositoryName: String!) {
+            repository(name: `$repositoryName, owner: `$owner) {
+                issueOrPullRequest(number: `$number) {
                     $([ItemContent]::FetchSubQuery)
                 }
             }
@@ -433,8 +437,8 @@ function Get-ItemContent {
 
     $variables = @{
         repositoryName = $repositoryName;
-        org = $org;
-        id = $number
+        owner          = $owner;
+        number         = $number
     }
 
     if (-not $client) {

@@ -21,7 +21,7 @@ A single item on a Project or Board which corresponds to a single Issue or Pull 
 
 `[int] $number`: the Issue or Pull Request number. This is what is usually referred to as the "id".
 
-`[string] $repository`: the full repository name in the form `org/repo`
+`[string] $repository`: the full repository name in the form `owner/repo`
 
 `[string] $type`: `"Issue"` or `"Pull Request"`
 
@@ -193,7 +193,8 @@ The value of a `ProjectField` for a partiicular `ProjectItem`
 Import-Module .\types\project-vnext.psm1
 
 # Load Project
-$proj = Get-Project -org my-org -projectNumber 123 -token $token
+$proj = Get-Project -owner my-org -projectNumber 123 -token $token
+$proj = Get-Project -owner my-user -projectNumber 123 -token $token -userOwner # For personal Projects
 
 # List field names
 $proj.fields.name
