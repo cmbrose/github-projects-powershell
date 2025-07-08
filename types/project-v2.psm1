@@ -465,16 +465,22 @@ function Get-ProjectItems {
     [CmdletBinding()]
     [OutputType([ProjectItem[]])]
     param(
-        [string]$org,
+        [string]$owner,
         [int]$projectNumber,
+        [switch]$userOwned,
         [GraphQLClient]$client
     )
 
     $pageSize = 100
 
+    $scope = "organization"
+    if ($userOwned) {
+        $scope = "user"
+    }
+
     $query = "
-        query (`$id: Int!, `$org: String!, `$cursor: String) {
-            organization(login: `$org) {
+        query (`$id: Int!, `$login: String!, `$cursor: String) {
+            $scope(login: `$login) {
                 projectV2(number: `$id) {
                     items(first: $pageSize, after: `$cursor) {                
                         edges {
@@ -494,18 +500,18 @@ function Get-ProjectItems {
 
     $variables = @{
         id     = $projectNumber;
-        org    = $org;
+        login  = $owner;
         cursor = $null;
     }
 
     do {        
         $result = $client.MakeRequest($query, $variables)
 
-        $itemIds = $result.organization.projectV2.items.edges.node.id
+        $itemIds = $result.$scope.projectV2.items.edges.node.id
 
         Get-ProjectItemsByIdBatch -ids $itemIds -client $client
 
-        $pageInfo = $result.organization.projectV2.items.pageInfo
+        $pageInfo = $result.$scope.projectV2.items.pageInfo
 
         $variables.cursor = $pageInfo.endCursor
     } while ($pageInfo.hasNextPage)
@@ -522,6 +528,10 @@ function Get-ProjectItemsByIdBatch {
         [string[]]$ids,
         [GraphQLClient]$client
     )
+
+    if (-not $ids) {
+        return @()
+    }
 
     # Hashtable is important here because @{} is case-insensitive
     # These are just inverse maps of each other
@@ -572,7 +582,8 @@ function Get-ProjectItemsByIdBatch {
             try {
                 $subResult = $client.MakeRequest($query)
                 $result.($idToNodeNameMap[$_]) = $subResult.($idToNodeNameMap[$_])
-            } catch {
+            }
+            catch {
                 $badIds += $id
             }
         }
@@ -592,14 +603,20 @@ function Get-ProjectFields {
     [CmdletBinding()]
     [OutputType([ProjectField[]])]
     param(
-        [string]$org,
+        [string]$owner,
         [int]$projectNumber,
+        [switch]$userOwned,
         [GraphQLClient]$client
     )
 
+    $scope = "organization"
+    if ($userOwned) {
+        $scope = "user"
+    }
+
     $query = "
-        query (`$id: Int!, `$org: String!) {
-            organization(login: `$org) {
+        query (`$id: Int!, `$login: String!) {
+            $scope(login: `$login) {
                 projectV2(number: `$id) {
                     fields(first: $global:maxSupportedProjectFields) {
                         edges {
@@ -617,17 +634,17 @@ function Get-ProjectFields {
     "
 
     $variables = @{
-        id  = $projectNumber;
-        org = $org;
+        id    = $projectNumber;
+        login = $owner;
     }
 
     $result = $client.MakeRequest($query, $variables)
 
-    if ($result.organization.projectV2.fields.pageInfo.hasNextPage) {
+    if ($result.$scope.projectV2.fields.pageInfo.hasNextPage) {
         throw "Could not fetch fields for Project #$projectNumber - it has more than the supported limit of $global:maxSupportedProjectFields fields"
     }
 
-    $result.organization.projectV2.fields.edges.node 
+    $result.$scope.projectV2.fields.edges.node 
     | ForEach-Object { [ProjectField]::new($_) }
     | Where-Object { -not (Is-IgnoredField $_) }
 }
@@ -654,18 +671,24 @@ function Get-Project {
     [CmdletBinding()]
     [OutputType([Project])]
     param(
-        [string]$org,
+        [string]$owner,
         [int]$projectNumber,
+        [switch]$userOwned,
         [Parameter(Mandatory = $true, ParameterSetName = "Client")]
         [GraphQLClient]$client,
         [Parameter(Mandatory = $true, ParameterSetName = "Token")]
         [string]$token
     )
 
+    $scope = "organization"
+    if ($userOwned) {
+        $scope = "user"
+    }
+
     #TODO - this could be added into another query
     $query = "
-        query (`$id: Int!, `$org: String!) {
-            organization(login: `$org) {
+        query (`$id: Int!, `$login: String!) {
+            $scope(login: `$login) {
                 projectV2(number: `$id) {
                     id
                     title
@@ -676,8 +699,8 @@ function Get-Project {
     "
 
     $variables = @{
-        id  = $projectNumber;
-        org = $org;
+        id    = $projectNumber;
+        login = $owner;
     }
 
     if (-not $client) {
@@ -687,11 +710,11 @@ function Get-Project {
     $result = $client.MakeRequest($query, $variables)
 
     $project = [Project]::new(
-        $result.organization.projectV2.id,
-        $result.organization.projectV2.title,
-        $result.organization.projectV2.number,
-        (Get-ProjectFields -org $org -projectNumber $projectNumber -Client $client),
-        (Get-ProjectItems -org $org -projectNumber $projectNumber -Client $client),
+        $result.$scope.projectV2.id,
+        $result.$scope.projectV2.title,
+        $result.$scope.projectV2.number,
+        (Get-ProjectFields -owner $owner -projectNumber $projectNumber -Client $client -userOwned:$userOwned),
+        (Get-ProjectItems -owner $owner -projectNumber $projectNumber -Client $client -userOwned:$userOwned),
         $client
     )
 
@@ -703,16 +726,23 @@ function Get-AllProjectNumbers {
     [CmdletBinding()]
     [OutputType([int[]])]
     param(
-        [string]$org,
+        [string]$owner,
+        [switch]$userOwned,
         [Parameter(Mandatory = $true, ParameterSetName = "Client")]
         [GraphQLClient]$client,
         [Parameter(Mandatory = $true, ParameterSetName = "Token")]
         [string]$token
     )
 
+    $scope = "organization"
+    if ($userOwned) {
+        $scope = "user"
+    }
+
+
     $query = "
-        query (`$org: String!, `$cursor: String) {
-            organization(login: `$org) {
+        query (`$login: String!, `$cursor: String) {
+            $scope(login: `$login) {
                 projectV2(first: 100, after: `$cursor) {
                     edges {
                         node { 
@@ -731,7 +761,7 @@ function Get-AllProjectNumbers {
 
     $variables = @{
         cursor = $null;
-        org    = $org;
+        login  = $owner;
     }
 
     if (-not $client) {
@@ -742,8 +772,8 @@ function Get-AllProjectNumbers {
     
     do {
         $result = $client.MakeRequest($query, $variables)
-        $projects = $result.organization.projectsNext
-        
+        $projects = $result.$scope.projectsNext
+
         $projectNumbers += $projects.edges.node | Where-Object { -not $_.closed } | ForEach-Object { $_.number }
         
         $variables.cursor = $projects.pageInfo.endCursor            

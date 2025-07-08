@@ -83,14 +83,14 @@ function Get-RepositoryLabels {
     [CmdletBinding()]
     [OutputType([Label[]])]
     param(
-        [string]$org,
+        [string]$owner,
         [string]$name,
         [GraphQLClient]$client
     )
 
     $query = "
         query (`$cursor: String) {
-            repository(name: `"$name`", owner: `"$org`") {
+            repository(name: `"$name`", owner: `"$owner`") {
                 labels(first: 100, after: `$cursor) {
                     edges {
                         node {
@@ -129,7 +129,7 @@ function Get-Repository {
     [OutputType([Repository])]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$org,
+        [string]$owner,
         [Parameter(Mandatory = $true)]
         [string]$name,
         [Parameter(Mandatory = $true, ParameterSetName = "Client")]
@@ -140,7 +140,7 @@ function Get-Repository {
 
     $query = "
         query {
-            repository(name: `"$name`", owner: `"$org`") {
+            repository(name: `"$name`", owner: `"$owner`") {
                 $([Repository]::FetchSubQuery)
             }
         }
@@ -154,7 +154,7 @@ function Get-Repository {
 
     $repo = [Repository]::new($result.repository, $client)
 
-    $labels = Get-RepositoryLabels -org $org -name $name -client $client
+    $labels = Get-RepositoryLabels -owner $owner -name $name -client $client
 
     $repo.SetLabels($labels)
 
